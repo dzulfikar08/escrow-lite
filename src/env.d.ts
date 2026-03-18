@@ -11,3 +11,10 @@ interface Env {
   ENCRYPTION_KEY: string;
   MIDTRANS_API_URL: string;
 }
+
+// Extend Astro's Locals interface
+declare namespace App {
+  interface Locals {
+    runtime?: import('@astrojs/cloudflare').Runtime<Env>;
+  }
+}

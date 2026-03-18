@@ -6,6 +6,7 @@ import {
   markAsShippedSchema,
   createBankAccountSchema,
   addDisputeEvidenceSchema,
+  apiErrorSchema,
   type RegisterSellerInput,
   type LoginSellerInput,
   type CreateTransactionInput,
@@ -274,7 +275,6 @@ describe('Validation Schemas', () => {
 
   describe('API Response Schemas', () => {
     it('should have correct API error response structure', () => {
-      const { apiErrorSchema } = require('../../../src/lib/validation');
       const mockErrorResponse = {
         success: false,
         error: {
