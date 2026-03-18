@@ -12,7 +12,7 @@ name = "escrow-lite-dev"
 [[env.development.d1_databases]]
 binding = "DB"
 database_name = "escrow-lite-dev"
-database_id = "local"
+database_id = "e14aecb7-3188-49d3-b545-d7396e212d60"
 
 [[env.development.r2_buckets]]
 binding = "STORAGE"
@@ -34,7 +34,7 @@ name = "escrow-lite-prod"
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "escrow-lite-prod"
-database_id = ""  # To be filled during deployment
+database_id = "aafa0168-3efe-43e2-aaf7-0ca27ac88a4c"
 
 [[env.production.r2_buckets]]
 binding = "STORAGE"
