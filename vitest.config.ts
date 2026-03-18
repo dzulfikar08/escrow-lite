@@ -8,18 +8,8 @@ export default defineConfig({
     },
   },
   test: {
-    environment: 'miniflare',
-    environmentOptions: {
-      modules: true,
-      bindings: {
-        // D1 database will be created by Miniflare automatically
-        // Integration tests access it via globalThis.Miniflare.env.DB
-      },
-      d1Databases: {
-        // Create an in-memory D1 database for tests
-        DB: ':memory:',
-      },
-    },
+    // Use node environment for unit tests (no D1 needed)
+    environment: 'node',
     poolOptions: {
       threads: {
         singleThread: true,
