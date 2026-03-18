@@ -375,6 +375,297 @@ describe('EscrowEngine', () => {
     });
   });
 
+  describe('markAsHeld', () => {
+    it('should transition from funded to held', async () => {
+      const existingTransaction: Transaction = {
+        id: 'tx_123',
+        seller_id: 'seller_1',
+        buyer_email: 'buyer@example.com',
+        buyer_phone: '+628123456789',
+        amount: 500000,
+        fee_rate: ESCROW_CONFIG.FEE_RATE,
+        fee_amount: 5000,
+        net_amount: 495000,
+        gateway: 'midtrans',
+        gateway_transaction_id: 'gw_123',
+        status: TransactionStatus.FUNDED,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const mockStmt = {
+        bind: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ success: true }),
+        first: vi.fn()
+          .mockResolvedValueOnce(existingTransaction)
+          .mockResolvedValueOnce({
+            ...existingTransaction,
+            status: TransactionStatus.HELD,
+            updated_at: new Date().toISOString(),
+          }),
+        all: vi.fn().mockResolvedValue([existingTransaction]),
+      } as unknown as D1PreparedStatement;
+
+      mockPrepare.mockReturnValue(mockStmt);
+
+      const updated = await engine.markAsHeld('tx_123');
+
+      expect(updated.status).toBe(TransactionStatus.HELD);
+    });
+
+    it('should throw error for invalid transition from pending to held', async () => {
+      const existingTransaction: Transaction = {
+        id: 'tx_123',
+        seller_id: 'seller_1',
+        buyer_email: 'buyer@example.com',
+        buyer_phone: '+628123456789',
+        amount: 500000,
+        fee_rate: ESCROW_CONFIG.FEE_RATE,
+        fee_amount: 5000,
+        net_amount: 495000,
+        gateway: 'midtrans',
+        status: TransactionStatus.PENDING,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const mockStmt = {
+        bind: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ success: true }),
+        first: vi.fn().mockResolvedValue(existingTransaction),
+        all: vi.fn().mockResolvedValue([existingTransaction]),
+      } as unknown as D1PreparedStatement;
+
+      mockPrepare.mockReturnValue(mockStmt);
+
+      await expect(engine.markAsHeld('tx_123')).rejects.toThrow(ConflictError);
+    });
+  });
+
+  describe('resolveDispute', () => {
+    it('should transition from disputed to resolved in buyer favor', async () => {
+      const existingTransaction: Transaction = {
+        id: 'tx_123',
+        seller_id: 'seller_1',
+        buyer_email: 'buyer@example.com',
+        buyer_phone: '+628123456789',
+        amount: 500000,
+        fee_rate: ESCROW_CONFIG.FEE_RATE,
+        fee_amount: 5000,
+        net_amount: 495000,
+        gateway: 'midtrans',
+        status: TransactionStatus.DISPUTED,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const mockStmt = {
+        bind: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ success: true }),
+        first: vi.fn()
+          .mockResolvedValueOnce(existingTransaction)
+          .mockResolvedValueOnce({
+            ...existingTransaction,
+            status: TransactionStatus.RESOLVED,
+            updated_at: new Date().toISOString(),
+          }),
+        all: vi.fn().mockResolvedValue([existingTransaction]),
+      } as unknown as D1PreparedStatement;
+
+      mockPrepare.mockReturnValue(mockStmt);
+
+      const updated = await engine.resolveDispute('tx_123', 'Buyer provided valid evidence', 'buyer');
+
+      expect(updated.status).toBe(TransactionStatus.RESOLVED);
+    });
+
+    it('should transition from disputed to resolved in seller favor', async () => {
+      const existingTransaction: Transaction = {
+        id: 'tx_123',
+        seller_id: 'seller_1',
+        buyer_email: 'buyer@example.com',
+        buyer_phone: '+628123456789',
+        amount: 500000,
+        fee_rate: ESCROW_CONFIG.FEE_RATE,
+        fee_amount: 5000,
+        net_amount: 495000,
+        gateway: 'midtrans',
+        status: TransactionStatus.DISPUTED,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const mockStmt = {
+        bind: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ success: true }),
+        first: vi.fn()
+          .mockResolvedValueOnce(existingTransaction)
+          .mockResolvedValueOnce({
+            ...existingTransaction,
+            status: TransactionStatus.RESOLVED,
+            updated_at: new Date().toISOString(),
+          }),
+        all: vi.fn().mockResolvedValue([existingTransaction]),
+      } as unknown as D1PreparedStatement;
+
+      mockPrepare.mockReturnValue(mockStmt);
+
+      const updated = await engine.resolveDispute('tx_123', 'Seller fulfilled obligations', 'seller');
+
+      expect(updated.status).toBe(TransactionStatus.RESOLVED);
+    });
+  });
+
+  describe('approveRefund', () => {
+    it('should transition from resolved to refunded', async () => {
+      const existingTransaction: Transaction = {
+        id: 'tx_123',
+        seller_id: 'seller_1',
+        buyer_email: 'buyer@example.com',
+        buyer_phone: '+628123456789',
+        amount: 500000,
+        fee_rate: ESCROW_CONFIG.FEE_RATE,
+        fee_amount: 5000,
+        net_amount: 495000,
+        gateway: 'midtrans',
+        status: TransactionStatus.RESOLVED,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const mockStmt = {
+        bind: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ success: true }),
+        first: vi.fn()
+          .mockResolvedValueOnce(existingTransaction)
+          .mockResolvedValueOnce({
+            ...existingTransaction,
+            status: TransactionStatus.REFUNDED,
+            refunded_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }),
+        all: vi.fn().mockResolvedValue([existingTransaction]),
+      } as unknown as D1PreparedStatement;
+
+      mockPrepare.mockReturnValue(mockStmt);
+
+      const updated = await engine.approveRefund('tx_123');
+
+      expect(updated.status).toBe(TransactionStatus.REFUNDED);
+      expect(updated.refunded_at).toBeDefined();
+    });
+  });
+
+  describe('finalizeRelease', () => {
+    it('should transition from resolved to released', async () => {
+      const existingTransaction: Transaction = {
+        id: 'tx_123',
+        seller_id: 'seller_1',
+        buyer_email: 'buyer@example.com',
+        buyer_phone: '+628123456789',
+        amount: 500000,
+        fee_rate: ESCROW_CONFIG.FEE_RATE,
+        fee_amount: 5000,
+        net_amount: 495000,
+        gateway: 'midtrans',
+        status: TransactionStatus.RESOLVED,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const mockStmt = {
+        bind: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ success: true }),
+        first: vi.fn()
+          .mockResolvedValueOnce(existingTransaction)
+          .mockResolvedValueOnce({
+            ...existingTransaction,
+            status: TransactionStatus.RELEASED,
+            release_reason: 'admin_override',
+            released_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }),
+        all: vi.fn().mockResolvedValue([existingTransaction]),
+      } as unknown as D1PreparedStatement;
+
+      mockPrepare.mockReturnValue(mockStmt);
+
+      const updated = await engine.finalizeRelease('tx_123');
+
+      expect(updated.status).toBe(TransactionStatus.RELEASED);
+      expect(updated.release_reason).toBe('admin_override');
+      expect(updated.released_at).toBeDefined();
+    });
+  });
+
+  describe('markAsPaidOut', () => {
+    it('should transition from released to paid_out', async () => {
+      const existingTransaction: Transaction = {
+        id: 'tx_123',
+        seller_id: 'seller_1',
+        buyer_email: 'buyer@example.com',
+        buyer_phone: '+628123456789',
+        amount: 500000,
+        fee_rate: ESCROW_CONFIG.FEE_RATE,
+        fee_amount: 5000,
+        net_amount: 495000,
+        gateway: 'midtrans',
+        status: TransactionStatus.RELEASED,
+        release_reason: 'buyer_confirmed',
+        released_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const mockStmt = {
+        bind: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ success: true }),
+        first: vi.fn()
+          .mockResolvedValueOnce(existingTransaction)
+          .mockResolvedValueOnce({
+            ...existingTransaction,
+            status: TransactionStatus.PAID_OUT,
+            updated_at: new Date().toISOString(),
+          }),
+        all: vi.fn().mockResolvedValue([existingTransaction]),
+      } as unknown as D1PreparedStatement;
+
+      mockPrepare.mockReturnValue(mockStmt);
+
+      const updated = await engine.markAsPaidOut('tx_123');
+
+      expect(updated.status).toBe(TransactionStatus.PAID_OUT);
+    });
+
+    it('should throw error for invalid transition from held to paid_out', async () => {
+      const existingTransaction: Transaction = {
+        id: 'tx_123',
+        seller_id: 'seller_1',
+        buyer_email: 'buyer@example.com',
+        buyer_phone: '+628123456789',
+        amount: 500000,
+        fee_rate: ESCROW_CONFIG.FEE_RATE,
+        fee_amount: 5000,
+        net_amount: 495000,
+        gateway: 'midtrans',
+        status: TransactionStatus.HELD,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const mockStmt = {
+        bind: vi.fn().mockReturnThis(),
+        run: vi.fn().mockResolvedValue({ success: true }),
+        first: vi.fn().mockResolvedValue(existingTransaction),
+        all: vi.fn().mockResolvedValue([existingTransaction]),
+      } as unknown as D1PreparedStatement;
+
+      mockPrepare.mockReturnValue(mockStmt);
+
+      await expect(engine.markAsPaidOut('tx_123')).rejects.toThrow(ConflictError);
+    });
+  });
+
   describe('getTransaction', () => {
     it('should return transaction by ID', async () => {
       const transaction: Transaction = {

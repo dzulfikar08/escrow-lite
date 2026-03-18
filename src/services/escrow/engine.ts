@@ -120,6 +120,37 @@ export class EscrowEngine {
   }
 
   /**
+   * Mark transaction as held after payment verification
+   * Transition: FUNDED → HELD
+   *
+   * @param transactionId - Transaction ID
+   * @returns Updated transaction
+   * @throws NotFoundError if transaction doesn't exist
+   * @throws ConflictError for invalid state transition
+   */
+  async markAsHeld(transactionId: string): Promise<Transaction> {
+    const transaction = await this.getTransactionOrThrow(transactionId);
+
+    // Validate state transition
+    this.validateTransition(transaction.status, 'held');
+
+    const now = new Date().toISOString();
+
+    await this.db
+      .prepare(
+        `
+        UPDATE transactions
+        SET status = ?, updated_at = ?
+        WHERE id = ?
+      `
+      )
+      .bind('held', now, transactionId)
+      .run();
+
+    return this.getTransactionOrThrow(transactionId);
+  }
+
+  /**
    * Mark transaction as shipped by seller
    * Starts the auto-release countdown
    *
@@ -235,6 +266,140 @@ export class EscrowEngine {
       `
       )
       .bind('disputed', now, transactionId)
+      .run();
+
+    return this.getTransactionOrThrow(transactionId);
+  }
+
+  /**
+   * Resolve a dispute with outcome
+   * Transition: DISPUTED → RESOLVED
+   *
+   * @param transactionId - Transaction ID
+   * @param resolution - Resolution description
+   * @param outcome - Who won the dispute ('buyer' or 'seller')
+   * @returns Updated transaction
+   * @throws NotFoundError if transaction doesn't exist
+   * @throws ConflictError for invalid state transition
+   */
+  async resolveDispute(
+    transactionId: string,
+    resolution: string,
+    outcome: 'buyer' | 'seller'
+  ): Promise<Transaction> {
+    const transaction = await this.getTransactionOrThrow(transactionId);
+
+    // Validate state transition
+    this.validateTransition(transaction.status, 'resolved');
+
+    const now = new Date().toISOString();
+
+    await this.db
+      .prepare(
+        `
+        UPDATE transactions
+        SET status = ?, updated_at = ?, metadata = json_set(
+          coalesce(metadata, '{}'),
+          '$.dispute_resolution',
+          json_object('resolution', ?, 'outcome', ?, 'resolved_at', ?)
+        )
+        WHERE id = ?
+      `
+      )
+      .bind('resolved', now, resolution, outcome, now, transactionId)
+      .run();
+
+    return this.getTransactionOrThrow(transactionId);
+  }
+
+  /**
+   * Approve refund after dispute resolution in buyer's favor
+   * Transition: RESOLVED → REFUNDED
+   *
+   * @param transactionId - Transaction ID
+   * @returns Updated transaction
+   * @throws NotFoundError if transaction doesn't exist
+   * @throws ConflictError for invalid state transition
+   */
+  async approveRefund(transactionId: string): Promise<Transaction> {
+    const transaction = await this.getTransactionOrThrow(transactionId);
+
+    // Validate state transition
+    this.validateTransition(transaction.status, 'refunded');
+
+    const now = new Date().toISOString();
+
+    await this.db
+      .prepare(
+        `
+        UPDATE transactions
+        SET status = ?, refunded_at = ?, updated_at = ?
+        WHERE id = ?
+      `
+      )
+      .bind('refunded', now, now, transactionId)
+      .run();
+
+    return this.getTransactionOrThrow(transactionId);
+  }
+
+  /**
+   * Finalize release after dispute resolution in seller's favor
+   * Transition: RESOLVED → RELEASED
+   *
+   * @param transactionId - Transaction ID
+   * @returns Updated transaction
+   * @throws NotFoundError if transaction doesn't exist
+   * @throws ConflictError for invalid state transition
+   */
+  async finalizeRelease(transactionId: string): Promise<Transaction> {
+    const transaction = await this.getTransactionOrThrow(transactionId);
+
+    // Validate state transition
+    this.validateTransition(transaction.status, 'released');
+
+    const now = new Date().toISOString();
+
+    await this.db
+      .prepare(
+        `
+        UPDATE transactions
+        SET status = ?, release_reason = ?, released_at = ?, updated_at = ?
+        WHERE id = ?
+      `
+      )
+      .bind('released', RELEASE_REASONS.ADMIN_OVERRIDE, now, now, transactionId)
+      .run();
+
+    return this.getTransactionOrThrow(transactionId);
+  }
+
+  /**
+   * Mark transaction as paid out after successful payout to seller's bank
+   * Transition: RELEASED → PAID_OUT
+   *
+   * @param transactionId - Transaction ID
+   * @returns Updated transaction
+   * @throws NotFoundError if transaction doesn't exist
+   * @throws ConflictError for invalid state transition
+   */
+  async markAsPaidOut(transactionId: string): Promise<Transaction> {
+    const transaction = await this.getTransactionOrThrow(transactionId);
+
+    // Validate state transition
+    this.validateTransition(transaction.status, 'paid_out');
+
+    const now = new Date().toISOString();
+
+    await this.db
+      .prepare(
+        `
+        UPDATE transactions
+        SET status = ?, updated_at = ?
+        WHERE id = ?
+      `
+      )
+      .bind('paid_out', now, transactionId)
       .run();
 
     return this.getTransactionOrThrow(transactionId);

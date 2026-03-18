@@ -9,6 +9,8 @@ export enum TransactionStatus {
   DISPUTED = 'disputed', // Dispute opened
   REFUNDED = 'refunded', // Funds refunded to buyer
   EXPIRED = 'expired', // Auto-released after timeout
+  PAID_OUT = 'paid_out', // Funds paid out to seller's bank account
+  RESOLVED = 'resolved', // Dispute resolved
 }
 
 /**
