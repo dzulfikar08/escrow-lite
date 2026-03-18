@@ -5,7 +5,6 @@ compatibility_flags = ["nodejs_compat"]
 # Use assets directory for Astro build
 [assets]
 directory = "./dist"
-binding = "ASSETS"
 
 [env.development]
 name = "escrow-lite-dev"
