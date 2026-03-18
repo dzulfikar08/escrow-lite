@@ -107,13 +107,13 @@ export interface LedgerEntry {
   id: string;
   seller_id: string;
   transaction_id?: string; // Optional for adjustments
+  payout_id?: string; // Optional for payout entries
   type: 'hold' | 'release' | 'fee' | 'payout' | 'refund' | 'adjustment';
-  direction: 'in' | 'out'; // Money in or out
+  direction: 'credit' | 'debit'; // Credit = increase balance, Debit = decrease balance
   amount: number;
-  description: string;
-  balance_before: number;
-  balance_after: number;
-  metadata?: Record<string, unknown>;
+  balance_after: number; // Running balance after this entry
+  note?: string; // Description of the entry
+  metadata?: Record<string, unknown>; // Additional context
   created_at: Date;
 }
 
