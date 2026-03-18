@@ -1,0 +1,478 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+
+// Mock data for initial UI development
+// This will be replaced with real data from the database
+const mockStats = {
+  heldBalance: 3500000,
+  availableBalance: 8250000,
+  pendingPayout: 2000000,
+  totalTransactions: 127
+};
+
+const mockTransactions = [
+  {
+    id: 'TXN-001',
+    buyerEmail: 'bu***@gmail.com',
+    amount: 450000,
+    status: 'held',
+    createdAt: '2026-03-18T10:30:00Z'
+  },
+  {
+    id: 'TXN-002',
+    buyerEmail: 'sis***@yahoo.com',
+    amount: 750000,
+    status: 'released',
+    createdAt: '2026-03-17T14:20:00Z'
+  },
+  {
+    id: 'TXN-003',
+    buyerEmail: 'jus***@gmail.com',
+    amount: 1200000,
+    status: 'disputed',
+    createdAt: '2026-03-16T09:15:00Z'
+  },
+  {
+    id: 'TXN-004',
+    buyerEmail: 'agn***@outlook.com',
+    amount: 550000,
+    status: 'held',
+    createdAt: '2026-03-18T08:45:00Z'
+  },
+  {
+    id: 'TXN-005',
+    buyerEmail: 'din***@gmail.com',
+    amount: 325000,
+    status: 'refunded',
+    createdAt: '2026-03-15T16:30:00Z'
+  }
+];
+
+// Helper function to format currency in Indonesian Rupiah
+function formatRupiah(amount: number): string {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0
+  }).format(amount);
+}
+
+// Helper function to format date
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
+}
+
+// Helper function to get status badge color
+function getStatusColor(status: string): string {
+  const colors = {
+    held: 'yellow',
+    released: 'green',
+    disputed: 'red',
+    refunded: 'gray'
+  };
+  return colors[status as keyof typeof colors] || 'gray';
+}
+
+// Helper function to get status label in Indonesian
+function getStatusLabel(status: string): string {
+  const labels = {
+    held: 'Ditahan',
+    released: 'Dirilis',
+    disputed: 'Disengketakan',
+    refunded: 'Dikembalikan'
+  };
+  return labels[status as keyof typeof labels] || status;
+}
+---
+
+<DashboardLayout title="Dashboard - Escrow Lite">
+  <div class="dashboard-page">
+    <div class="page-header">
+      <h2>Dashboard</h2>
+      <p class="subtitle">Selamat datang kembali! Berikut ringkasan aktivitas toko Anda.</p>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card stat-card--held">
+        <div class="stat-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <p class="stat-label">Saldo Ditahan</p>
+          <p class="stat-value">{formatRupiah(mockStats.heldBalance)}</p>
+          <p class="stat-description">Dana dalam proses escrow</p>
+        </div>
+      </div>
+
+      <div class="stat-card stat-card--available">
+        <div class="stat-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <p class="stat-label">Saldo Tersedia</p>
+          <p class="stat-value">{formatRupiah(mockStats.availableBalance)}</p>
+          <p class="stat-description">Siap dicairkan</p>
+        </div>
+      </div>
+
+      <div class="stat-card stat-card--pending">
+        <div class="stat-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <p class="stat-label">Pencairan Pending</p>
+          <p class="stat-value">{formatRupiah(mockStats.pendingPayout)}</p>
+          <p class="stat-description">Sedang diproses</p>
+        </div>
+      </div>
+
+      <div class="stat-card stat-card--transactions">
+        <div class="stat-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <p class="stat-label">Total Transaksi</p>
+          <p class="stat-value">{mockStats.totalTransactions}</p>
+          <p class="stat-description">Semua waktu</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <a href="/dashboard/transactions/new" class="btn btn--primary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Buat Transaksi Baru
+      </a>
+      <a href="/dashboard/payouts/new" class="btn btn--secondary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+        Minta Pencairan Dana
+      </a>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="recent-transactions">
+      <div class="section-header">
+        <h3>Transaksi Terbaru</h3>
+        <a href="/dashboard/transactions" class="view-all-link">Lihat Semua →</a>
+      </div>
+
+      <div class="transactions-list">
+        {mockTransactions.map((txn) => (
+          <div class="transaction-item">
+            <div class="transaction-info">
+              <p class="transaction-id">{txn.id}</p>
+              <p class="transaction-buyer">{txn.buyerEmail}</p>
+            </div>
+            <div class="transaction-amount">
+              <p class="amount">{formatRupiah(txn.amount)}</p>
+            </div>
+            <div class="transaction-status">
+              <span class={`status-badge status-badge--${getStatusColor(txn.status)}`}>
+                {getStatusLabel(txn.status)}
+              </span>
+            </div>
+            <div class="transaction-date">
+              <p class="date">{formatDate(txn.createdAt)}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<style>
+  .dashboard-page {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+  }
+
+  .page-header h2 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .subtitle {
+    font-size: 0.9375rem;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  /* Stats Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  .stat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .stat-card--held .stat-icon {
+    background-color: #fef3c7;
+    color: #d97706;
+  }
+
+  .stat-card--available .stat-icon {
+    background-color: #d1fae5;
+    color: #059669;
+  }
+
+  .stat-card--pending .stat-icon {
+    background-color: #dbeafe;
+    color: #2563eb;
+  }
+
+  .stat-card--transactions .stat-icon {
+    background-color: #f3f4f6;
+    color: #4b5563;
+  }
+
+  .stat-content {
+    flex: 1;
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .stat-description {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin: 0;
+  }
+
+  /* Action Buttons */
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .btn--primary {
+    background-color: #2563eb;
+    color: white;
+  }
+
+  .btn--primary:hover {
+    background-color: #1d4ed8;
+  }
+
+  .btn--secondary {
+    background-color: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+  }
+
+  .btn--secondary:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+  }
+
+  /* Recent Transactions */
+  .recent-transactions {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .section-header h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+  }
+
+  .view-all-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .view-all-link:hover {
+    color: #1d4ed8;
+  }
+
+  .transactions-list {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .transaction-item {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1fr 1.5fr;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f3f4f6;
+    align-items: center;
+  }
+
+  .transaction-item:last-child {
+    border-bottom: none;
+  }
+
+  .transaction-id {
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .transaction-buyer {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  .transaction-amount .amount {
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .status-badge--yellow {
+    background-color: #fef3c7;
+    color: #d97706;
+  }
+
+  .status-badge--green {
+    background-color: #d1fae5;
+    color: #059669;
+  }
+
+  .status-badge--red {
+    background-color: #fee2e2;
+    color: #dc2626;
+  }
+
+  .status-badge--gray {
+    background-color: #f3f4f6;
+    color: #6b7280;
+  }
+
+  .transaction-date .date {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  /* Mobile responsive */
+  @media (max-width: 768px) {
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .action-buttons {
+      flex-direction: column;
+    }
+
+    .btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .transaction-item {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
+
+    .transaction-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  }
+</style>

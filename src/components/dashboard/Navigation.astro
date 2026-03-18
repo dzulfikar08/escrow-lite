@@ -1,0 +1,187 @@
+---
+interface Props {
+  currentPath: string;
+}
+
+const { currentPath } = Astro.props;
+
+const navItems = [
+  {
+    label: 'Dashboard',
+    href: '/dashboard',
+    icon: '<rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>'
+  },
+  {
+    label: 'Transaksi',
+    href: '/dashboard/transactions',
+    icon: '<line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>'
+  },
+  {
+    label: 'Pencairan',
+    href: '/dashboard/payouts',
+    icon: '<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>'
+  },
+  {
+    label: 'Saldo',
+    href: '/dashboard/balance',
+    icon: '<rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>'
+  },
+  {
+    label: 'Pengaturan',
+    href: '/dashboard/settings',
+    icon: '<circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"></path>'
+  }
+];
+---
+
+<aside class="dashboard-navigation">
+  <div class="nav-header">
+    <div class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="brand-icon">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+      </svg>
+      <span class="brand-name">Escrow Lite</span>
+    </div>
+  </div>
+
+  <nav class="nav-menu">
+    {navItems.map((item) => (
+      <a
+        href={item.href}
+        class={`nav-item ${currentPath === item.href ? 'active' : ''}`}
+        aria-current={currentPath === item.href ? 'page' : undefined}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon">
+          {item.icon}
+        </svg>
+        <span class="nav-label">{item.label}</span>
+      </a>
+    ))}
+  </nav>
+
+  <div class="nav-footer">
+    <a href="/api/docs" target="_blank" rel="noopener noreferrer" class="nav-footer-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </svg>
+      <span>Dokumentasi API</span>
+    </a>
+  </div>
+</aside>
+
+<style>
+  .dashboard-navigation {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 250px;
+    height: 100vh;
+    background-color: white;
+    border-right: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    z-index: 50;
+    transition: transform 0.3s ease;
+  }
+
+  .nav-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .brand-icon {
+    color: #3b82f6;
+  }
+
+  .brand-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .nav-menu {
+    flex: 1;
+    padding: 1rem 0;
+    overflow-y: auto;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    color: #4b5563;
+    text-decoration: none;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+  }
+
+  .nav-item:hover {
+    background-color: #f3f4f6;
+    color: #111827;
+  }
+
+  .nav-item.active {
+    background-color: #eff6ff;
+    color: #2563eb;
+    border-left-color: #2563eb;
+  }
+
+  .nav-icon {
+    flex-shrink: 0;
+  }
+
+  .nav-label {
+    font-size: 0.9375rem;
+    font-weight: 500;
+  }
+
+  .nav-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .nav-footer-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    color: #6b7280;
+    text-decoration: none;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s;
+  }
+
+  .nav-footer-link:hover {
+    background-color: #f3f4f6;
+    color: #111827;
+  }
+
+  /* Mobile responsive */
+  @media (max-width: 768px) {
+    .dashboard-navigation {
+      transform: translateX(-100%);
+    }
+
+    .dashboard-navigation.mobile-open {
+      transform: translateX(0);
+    }
+
+    .dashboard-navigation.mobile-open::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: -1;
+    }
+  }
+</style>
