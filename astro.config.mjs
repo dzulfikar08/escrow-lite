@@ -18,5 +18,9 @@ export default defineConfig({
         '@': path.resolve('./src'),
       },
     },
+    ssr: {
+      // Externalize problematic Node.js packages that don't work in Workers
+      external: ['sharp', 'detect-libc'],
+    },
   },
 });
