@@ -1,0 +1,32 @@
+name = "escrow-lite"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Use assets directory for Astro build
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+[env.development]
+name = "escrow-lite-dev"
+
+[[env.development.d1_databases]]
+binding = "DB"
+database_name = "escrow-lite-dev"
+database_id = "local"
+
+[[env.development.r2_buckets]]
+binding = "STORAGE"
+bucket_name = "escrow-lite-dev-evidence"
+
+[env.development.vars]
+ENVIRONMENT = "development"
+
+# Cron triggers for auto-release
+[triggers]
+crons = ["*/5 * * * *"]
+
+# Production config (to be filled later)
+
+
+
