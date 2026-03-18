@@ -1,4 +1,11 @@
 import { describe, it, expect } from 'vitest';
+import {
+  TransactionStatus,
+  KycTier,
+  ReleaseReason,
+  DisputeReason,
+  Gateway,
+} from '../../../../src/services/escrow/types';
 import type {
   Transaction,
   Seller,
@@ -18,8 +25,7 @@ describe('Escrow Types', () => {
   });
 
   describe('Enums', () => {
-    it('should export TransactionStatus enum with correct values', async () => {
-      const { TransactionStatus } = await import('../../../../src/services/escrow/types');
+    it('should export TransactionStatus enum with correct values', () => {
       expect(TransactionStatus).toBeDefined();
       expect(TransactionStatus.PENDING).toBe('pending');
       expect(TransactionStatus.FUNDED).toBe('funded');
@@ -30,24 +36,21 @@ describe('Escrow Types', () => {
       expect(TransactionStatus.EXPIRED).toBe('expired');
     });
 
-    it('should export KycTier enum with correct values', async () => {
-      const { KycTier } = await import('../../../../src/services/escrow/types');
+    it('should export KycTier enum with correct values', () => {
       expect(KycTier).toBeDefined();
       expect(KycTier.NONE).toBe('none');
       expect(KycTier.BASIC).toBe('basic');
       expect(KycTier.FULL).toBe('full');
     });
 
-    it('should export ReleaseReason enum with correct values', async () => {
-      const { ReleaseReason } = await import('../../../../src/services/escrow/types');
+    it('should export ReleaseReason enum with correct values', () => {
       expect(ReleaseReason).toBeDefined();
       expect(ReleaseReason.BUYER_CONFIRMED).toBe('buyer_confirmed');
       expect(ReleaseReason.TIMEOUT).toBe('timeout');
       expect(ReleaseReason.ADMIN_OVERRIDE).toBe('admin_override');
     });
 
-    it('should export DisputeReason enum with correct values', async () => {
-      const { DisputeReason } = await import('../../../../src/services/escrow/types');
+    it('should export DisputeReason enum with correct values', () => {
       expect(DisputeReason).toBeDefined();
       expect(DisputeReason.NOT_RECEIVED).toBe('not_received');
       expect(DisputeReason.NOT_AS_DESCRIBED).toBe('not_as_described');
@@ -56,8 +59,7 @@ describe('Escrow Types', () => {
       expect(DisputeReason.OTHER).toBe('other');
     });
 
-    it('should export Gateway enum with correct values', async () => {
-      const { Gateway } = await import('../../../../src/services/escrow/types');
+    it('should export Gateway enum with correct values', () => {
       expect(Gateway).toBeDefined();
       expect(Gateway.MIDTRANS).toBe('midtrans');
       expect(Gateway.XENDIT).toBe('xendit');
@@ -103,10 +105,7 @@ describe('Escrow Types', () => {
   });
 
   describe('Transaction Interface', () => {
-    it('should have all required fields', async () => {
-      const { Transaction, TransactionStatus, Gateway } = await import(
-        '../../../../src/services/escrow/types'
-      );
+    it('should have all required fields', () => {
       const transaction: Partial<Transaction> = {
         id: '123',
         seller_id: '456',
@@ -124,8 +123,7 @@ describe('Escrow Types', () => {
       expect(transaction).toBeDefined();
     });
 
-    it('should have Indonesian market specific fields', async () => {
-      const { Gateway } = await import('../../../../src/services/escrow/types');
+    it('should have Indonesian market specific fields', () => {
       expect(Gateway.MIDTRANS).toBe('midtrans');
       expect(Gateway.XENDIT).toBe('xendit');
       expect(Gateway.DOKU).toBe('doku');
@@ -133,8 +131,7 @@ describe('Escrow Types', () => {
   });
 
   describe('Seller Interface', () => {
-    it('should have all required fields including Indonesian compliance', async () => {
-      const { Seller, KycTier } = await import('../../../../src/services/escrow/types');
+    it('should have all required fields including Indonesian compliance', () => {
       const seller: Partial<Seller> = {
         id: '123',
         auth_id: 'auth123',
@@ -151,8 +148,7 @@ describe('Escrow Types', () => {
   });
 
   describe('LedgerEntry Interface', () => {
-    it('should have correct type and direction fields', async () => {
-      const { LedgerEntry } = await import('../../../../src/services/escrow/types');
+    it('should have correct type and direction fields', () => {
       const ledgerEntry: Partial<LedgerEntry> = {
         id: '123',
         seller_id: '456',
@@ -169,8 +165,7 @@ describe('Escrow Types', () => {
   });
 
   describe('SellerBalances Interface', () => {
-    it('should have correct balance fields', async () => {
-      const { SellerBalances } = await import('../../../../src/services/escrow/types');
+    it('should have correct balance fields', () => {
       const balances: SellerBalances = {
         held_balance: 5000000,
         available_balance: 3000000,

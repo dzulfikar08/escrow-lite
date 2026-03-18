@@ -12,15 +12,17 @@ import {
 describe('Error Classes', () => {
   describe('AppError', () => {
     it('should create base error with default values', () => {
-      const error = new AppError('Test error');
+      const error = new AppError('Test error', 500, 'APP_ERROR');
       expect(error.message).toBe('Test error');
       expect(error.statusCode).toBe(500);
       expect(error.name).toBe('AppError');
+      expect(error.code).toBe('APP_ERROR');
     });
 
     it('should create error with custom status code', () => {
-      const error = new AppError('Test error', 400);
+      const error = new AppError('Test error', 400, 'TEST_ERROR');
       expect(error.statusCode).toBe(400);
+      expect(error.code).toBe('TEST_ERROR');
     });
 
     it('should create error with custom code', () => {
@@ -161,7 +163,10 @@ describe('Error Classes', () => {
     it('should return Response with correct JSON structure', async () => {
       const error = new ValidationError('Validation failed', { email: 'Invalid email' });
       const response = handleError(error);
-      const json = await response.json();
+      const json = await response.json() as {
+        error: { message: string; code: string; details: Record<string, unknown> };
+        meta: { request_id: string; timestamp: string };
+      };
 
       expect(json).toHaveProperty('error');
       expect(json).toHaveProperty('meta');

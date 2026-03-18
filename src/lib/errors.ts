@@ -1,5 +1,3 @@
-import { Request } from 'astro';
-
 /**
  * Base application error class
  * All custom errors should extend this class
@@ -8,24 +6,31 @@ export class AppError extends Error {
   constructor(
     public message: string,
     public statusCode: number = 500,
-    public code?: string
+    public code: string
   ) {
     super(message);
     this.name = this.constructor.name;
     Error.captureStackTrace(this, this.constructor);
   }
 
+  /**
+   * Build metadata object for error responses
+   */
+  protected buildMeta() {
+    return {
+      request_id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+    };
+  }
+
   toJSON() {
     return {
       error: {
         message: this.message,
-        code: this.code || this.name,
+        code: this.code,
         details: {},
       },
-      meta: {
-        request_id: crypto.randomUUID(),
-        timestamp: new Date().toISOString(),
-      },
+      meta: this.buildMeta(),
     };
   }
 }
@@ -37,6 +42,17 @@ export class AppError extends Error {
 export class AuthenticationError extends AppError {
   constructor(message: string = 'Authentication required') {
     super(message, 401, 'AUTHENTICATION_ERROR');
+  }
+
+  toJSON() {
+    return {
+      error: {
+        message: this.message,
+        code: this.code,
+        details: {},
+      },
+      meta: this.buildMeta(),
+    };
   }
 }
 
@@ -58,10 +74,7 @@ export class ValidationError extends AppError {
         code: this.code,
         details,
       },
-      meta: {
-        request_id: crypto.randomUUID(),
-        timestamp: new Date().toISOString(),
-      },
+      meta: this.buildMeta(),
     };
   }
 }
@@ -74,6 +87,17 @@ export class NotFoundError extends AppError {
   constructor(message: string = 'Resource not found') {
     super(message, 404, 'NOT_FOUND_ERROR');
   }
+
+  toJSON() {
+    return {
+      error: {
+        message: this.message,
+        code: this.code,
+        details: {},
+      },
+      meta: this.buildMeta(),
+    };
+  }
 }
 
 /**
@@ -83,6 +107,17 @@ export class NotFoundError extends AppError {
 export class ConflictError extends AppError {
   constructor(message: string) {
     super(message, 409, 'CONFLICT_ERROR');
+  }
+
+  toJSON() {
+    return {
+      error: {
+        message: this.message,
+        code: this.code,
+        details: {},
+      },
+      meta: this.buildMeta(),
+    };
   }
 }
 
@@ -107,10 +142,7 @@ export class RateLimitError extends AppError {
         code: this.code,
         details,
       },
-      meta: {
-        request_id: crypto.randomUUID(),
-        timestamp: new Date().toISOString(),
-      },
+      meta: this.buildMeta(),
     };
   }
 }
@@ -119,7 +151,7 @@ export class RateLimitError extends AppError {
  * Handle errors and return appropriate Response for API routes
  * Converts any error to a Response object
  */
-export function handleError(error: unknown, request?: Request): Response {
+export function handleError(error: unknown): Response {
   let appError: AppError;
 
   // Already an AppError, use as-is
@@ -139,11 +171,11 @@ export function handleError(error: unknown, request?: Request): Response {
   }
   // Generic error
   else if (error instanceof Error) {
-    appError = new AppError(error.message, 500);
+    appError = new AppError(error.message, 500, 'INTERNAL_ERROR');
   }
   // Unknown error type
   else {
-    appError = new AppError('An unexpected error occurred', 500);
+    appError = new AppError('An unexpected error occurred', 500, 'INTERNAL_ERROR');
   }
 
   const errorJson = appError.toJSON();

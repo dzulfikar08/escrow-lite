@@ -1,17 +1,22 @@
 import { z } from 'zod';
 
+// Validation constants
+export const MIN_NAME_LENGTH = 3;
+export const MAX_NAME_LENGTH = 100;
+export const MIN_PASSWORD_LENGTH = 8;
+
 /**
  * Seller registration schema
  */
 export const registerSellerSchema = z.object({
   name: z
     .string()
-    .min(3, 'Name must be at least 3 characters')
-    .max(100, 'Name must not exceed 100 characters'),
+    .min(MIN_NAME_LENGTH, `Name must be at least ${MIN_NAME_LENGTH} characters`)
+    .max(MAX_NAME_LENGTH, `Name must not exceed ${MAX_NAME_LENGTH} characters`),
   email: z.string().email('Invalid email address'),
   password: z
     .string()
-    .min(8, 'Password must be at least 8 characters')
+    .min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters`)
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
     .regex(/[0-9]/, 'Password must contain at least one number'),
@@ -34,7 +39,9 @@ export type LoginSellerInput = z.infer<typeof loginSellerSchema>;
  */
 export const createTransactionSchema = z.object({
   buyer_email: z.string().email('Invalid buyer email'),
-  buyer_phone: z.string().min(10, 'Phone number is required'),
+  buyer_phone: z
+    .string()
+    .regex(/^\+62\d{8,12}$/, 'Phone number must be in Indonesian format (+62 followed by 8-12 digits)'),
   amount: z.number().positive('Amount must be positive'),
   auto_release_days: z.number().int().positive().optional(),
   metadata: z.record(z.unknown()).optional(),
