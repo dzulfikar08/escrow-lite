@@ -889,22 +889,81 @@ export function errorResponse(message: string, code: string, status = 500): Resp
     status
   );
 }
+
+export function validationErrorResponse(errors: unknown): Response {
+  return jsonResponse(
+    {
+      error: {
+        message: 'Validation failed',
+        code: 'VALIDATION_ERROR',
+        details: errors,
+      },
+      meta: {
+        request_id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+      },
+    },
+    400
+  );
+}
 ```
 
 - [ ] **Step 3: Create test database helper**
 
 ```typescript
 // tests/helpers/test-db.ts
+import fs from 'fs';
+import path from 'path';
+
 export class TestDatabase {
   private db: D1Database;
 
-  constructor() {
-    this.db = new D1Database(':memory:');
+  // For use with miniflare or local D1 testing
+  constructor(db?: D1Database) {
+    if (db) {
+      this.db = db;
+    } else {
+      // Fallback: create from local .wrangler state or use mock
+      // In tests, pass the D1 binding from the test environment
+      throw new Error(
+        'TestDatabase requires D1 binding. ' +
+        'Pass env.DB from test context or use miniflare setup.'
+      );
+    }
   }
 
   async migrate() {
-    const schema = await import('../../src/db/schema.sql', { assert: { type: 'json' } });
-    await this.db.exec(schema.default);
+    const schemaPath = path.join(process.cwd(), 'src/db/schema.sql');
+    const schema = fs.readFileSync(schemaPath, 'utf-8');
+
+    // Split by semicolon and execute each statement
+    const statements = schema
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && !s.startsWith('--'));
+
+    for (const statement of statements) {
+      await this.db.exec(statement);
+    }
+  }
+
+  async reset() {
+    const tables = [
+      'ledger_entries',
+      'transactions',
+      'api_keys',
+      'seller_bank_accounts',
+      'sellers',
+      'webhook_delivery_log',
+      'dispute_evidence',
+      'disputes',
+      'payouts',
+      'confirmation_tokens',
+    ];
+
+    for (const table of tables) {
+      await this.db.prepare(`DELETE FROM ${table}`).run();
+    }
   }
 
   async createSeller(overrides = {}) {
