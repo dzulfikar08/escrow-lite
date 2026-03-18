@@ -1,0 +1,363 @@
+---
+/**
+ * DisputeDetail Component
+ * Displays detailed information about a dispute including transaction details and evidence
+ */
+
+interface Evidence {
+  id: string;
+  dispute_id: string;
+  submitted_by: 'buyer' | 'seller';
+  file_url: string;
+  file_type: string;
+  file_name: string;
+  file_size: number;
+  description: string | null;
+  uploaded_at: string;
+}
+
+interface Transaction {
+  id: string;
+  seller_id: string;
+  seller_name: string;
+  seller_email: string;
+  buyer_email: string;
+  buyer_phone: string | null;
+  amount: number;
+  fee_amount: number;
+  net_amount: number;
+  status: string;
+  created_at: string;
+}
+
+interface Dispute {
+  id: string;
+  transaction_id: string;
+  initiated_by: 'buyer' | 'seller' | 'admin';
+  reason_category: string;
+  buyer_description: string | null;
+  seller_response: string | null;
+  status: string;
+  resolution: string | null;
+  resolution_note: string | null;
+  admin_id: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  transaction: Transaction;
+  evidence: Evidence[];
+}
+
+interface Props {
+  dispute: Dispute;
+}
+
+const { dispute } = Astro.props;
+
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+  }).format(amount);
+};
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('id-ID', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+};
+
+const formatFileSize = (bytes: number) => {
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  if (bytes === 0) return '0 Bytes';
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+};
+
+const getStatusColor = (status: string) => {
+  const colors = {
+    open: 'bg-yellow-100 text-yellow-800',
+    seller_responding: 'bg-blue-100 text-blue-800',
+    under_review: 'bg-purple-100 text-purple-800',
+    resolved: 'bg-green-100 text-green-800',
+    closed: 'bg-gray-100 text-gray-800',
+  };
+  return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+};
+
+const getStatusLabel = (status: string) => {
+  const labels = {
+    open: 'Open',
+    seller_responding: 'Seller Responding',
+    under_review: 'Under Review',
+    resolved: 'Resolved',
+    closed: 'Closed',
+  };
+  return labels[status as keyof typeof labels] || status;
+};
+
+const getReasonLabel = (reason: string) => {
+  const labels = {
+    not_received: 'Not Received',
+    not_as_described: 'Not As Described',
+    damaged: 'Damaged',
+    wrong_item: 'Wrong Item',
+    other: 'Other',
+  };
+  return labels[reason as keyof typeof labels] || reason;
+};
+
+const getFileIcon = (fileType: string) => {
+  if (fileType.includes('image')) {
+    return '📷';
+  } else if (fileType.includes('pdf')) {
+    return '📄';
+  } else if (fileType.includes('video')) {
+    return '🎥';
+  }
+  return '📎';
+};
+---
+
+<div class="dispute-detail">
+  <!-- Header -->
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:px-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Dispute Details
+          </h3>
+          <p class="mt-1 max-w-2xl text-sm text-gray-500">
+            Dispute ID: {dispute.id.slice(0, 8)}... | Transaction: #{dispute.transaction_id.slice(0, 8)}
+          </p>
+        </div>
+        <div class="flex-shrink-0">
+          <span
+            class={"px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full " +
+              getStatusColor(dispute.status)}
+          >
+            {getStatusLabel(dispute.status)}
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+      <dl class="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
+        <div class="sm:col-span-1">
+          <dt class="text-sm font-medium text-gray-500">Initiated By</dt>
+          <dd class="mt-1 text-sm text-gray-900 capitalize">{dispute.initiated_by}</dd>
+        </div>
+        <div class="sm:col-span-1">
+          <dt class="text-sm font-medium text-gray-500">Reason</dt>
+          <dd class="mt-1 text-sm text-gray-900">{getReasonLabel(dispute.reason_category)}</dd>
+        </div>
+        <div class="sm:col-span-1">
+          <dt class="text-sm font-medium text-gray-500">Created</dt>
+          <dd class="mt-1 text-sm text-gray-900">{formatDate(dispute.created_at)}</dd>
+        </div>
+        <div class="sm:col-span-1">
+          <dt class="text-sm font-medium text-gray-500">Last Updated</dt>
+          <dd class="mt-1 text-sm text-gray-900">{formatDate(dispute.updated_at)}</dd>
+        </div>
+        {dispute.resolved_at && (
+          <div class="sm:col-span-1">
+            <dt class="text-sm font-medium text-gray-500">Resolved At</dt>
+            <dd class="mt-1 text-sm text-gray-900">{formatDate(dispute.resolved_at)}</dd>
+          </div>
+        )}
+        {dispute.resolution && (
+          <div class="sm:col-span-1">
+            <dt class="text-sm font-medium text-gray-500">Resolution</dt>
+            <dd class="mt-1 text-sm text-gray-900 capitalize">{dispute.resolution.replace(/_/g, ' ')}</dd>
+          </div>
+        )}
+      </dl>
+    </div>
+  </div>
+
+  <!-- Transaction Information -->
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:px-6">
+      <h3 class="text-lg leading-6 font-medium text-gray-900">
+        Transaction Information
+      </h3>
+    </div>
+    <div class="border-t border-gray-200">
+      <dl>
+        <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Amount</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            {formatCurrency(dispute.transaction.amount)}
+          </dd>
+        </div>
+        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Fee Amount</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            {formatCurrency(dispute.transaction.fee_amount)}
+          </dd>
+        </div>
+        <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Net Amount</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-semibold">
+            {formatCurrency(dispute.transaction.net_amount)}
+          </dd>
+        </div>
+        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Buyer Email</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            {dispute.transaction.buyer_email}
+          </dd>
+        </div>
+        <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Buyer Phone</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            {dispute.transaction.buyer_phone || '-'}
+          </dd>
+        </div>
+        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Seller</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            {dispute.transaction.seller_name} ({dispute.transaction.seller_email})
+          </dd>
+        </div>
+        <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Transaction Status</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 capitalize">
+            {dispute.transaction.status}
+          </dd>
+        </div>
+        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+          <dt class="text-sm font-medium text-gray-500">Created At</dt>
+          <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            {formatDate(dispute.transaction.created_at)}
+          </dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+
+  <!-- Descriptions -->
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:px-6">
+      <h3 class="text-lg leading-6 font-medium text-gray-900">
+        Dispute Descriptions
+      </h3>
+    </div>
+    <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+      {dispute.buyer_description && (
+        <div class="mb-4">
+          <h4 class="text-sm font-medium text-gray-500 mb-2">Buyer Description:</h4>
+          <p class="text-sm text-gray-900 bg-gray-50 p-3 rounded-md">
+            {dispute.buyer_description}
+          </p>
+        </div>
+      )}
+      {dispute.seller_response && (
+        <div>
+          <h4 class="text-sm font-medium text-gray-500 mb-2">Seller Response:</h4>
+          <p class="text-sm text-gray-900 bg-gray-50 p-3 rounded-md">
+            {dispute.seller_response}
+          </p>
+        </div>
+      )}
+      {!dispute.buyer_description && !dispute.seller_response && (
+        <p class="text-sm text-gray-500 italic">No descriptions provided.</p>
+      )}
+    </div>
+  </div>
+
+  <!-- Evidence Files -->
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:px-6">
+      <h3 class="text-lg leading-6 font-medium text-gray-900">
+        Evidence Files ({dispute.evidence.length})
+      </h3>
+    </div>
+    <div class="border-t border-gray-200">
+      {dispute.evidence.length === 0 ? (
+        <div class="px-4 py-5 sm:px-6 text-sm text-gray-500 italic">
+          No evidence files uploaded.
+        </div>
+      ) : (
+        <ul class="divide-y divide-gray-200">
+          {dispute.evidence.map((file) => (
+            <li class="px-4 py-4 sm:px-6 hover:bg-gray-50">
+              <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center">
+                    <span class="text-2xl mr-3">{getFileIcon(file.file_type)}</span>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-sm font-medium text-indigo-600 truncate">
+                        {file.file_name || 'Unnamed file'}
+                      </p>
+                      <p class="text-sm text-gray-500">
+                        <span class="capitalize">{file.submitted_by}</span> •
+                        {formatFileSize(file.file_size)} •
+                        {formatDate(file.uploaded_at)}
+                      </p>
+                      {file.description && (
+                        <p class="mt-1 text-xs text-gray-600">{file.description}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div class="ml-4 flex-shrink-0">
+                  <a
+                    href={file.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
+                  >
+                    <svg
+                      class="mr-1.5 h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                      />
+                    </svg>
+                    Download
+                  </a>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </div>
+
+  <!-- Resolution Note (if resolved) -->
+  {dispute.resolution_note && (
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+      <div class="px-4 py-5 sm:px-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+          Resolution Note
+        </h3>
+      </div>
+      <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+        <p class="text-sm text-gray-900 bg-green-50 p-3 rounded-md border border-green-200">
+          {dispute.resolution_note}
+        </p>
+      </div>
+    </div>
+  )}
+</div>
+
+<style>
+  .dispute-detail {
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+</style>

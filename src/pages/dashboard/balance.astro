@@ -1,17 +1,155 @@
 ---
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import BalanceSummary from '@/components/dashboard/BalanceSummary.astro';
+
+// Fetch balance data from API
+let balanceData = {
+  held_balance: 0,
+  available_balance: 0,
+  pending_payouts: 0,
+  total_paid_out: 0
+};
+
+try {
+  const response = await fetch(`${Astro.url.origin}/api/v1/seller/balance`, {
+    headers: {
+      'Cookie': Astro.request.headers.get('cookie') || ''
+    }
+  });
+
+  if (response.ok) {
+    const result = await response.json();
+    balanceData = result.data;
+  }
+} catch (error) {
+  console.error('Failed to fetch balance:', error);
+}
 ---
 
 <DashboardLayout title="Saldo - Escrow Lite">
-  <div class="page-placeholder">
-    <div class="placeholder-content">
-      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-      </svg>
-      <h2>Saldo</h2>
-      <p>Halaman ini sedang dalam pengembangan.</p>
-      <a href="/dashboard" class="back-link">← Kembali ke Dashboard</a>
+  <div class="balance-page">
+    <div class="page-header">
+      <h1>Saldo Saya</h1>
+      <p class="page-subtitle">Kelola dan pantau saldo Escrow Lite Anda</p>
+    </div>
+
+    <BalanceSummary
+      heldBalance={balanceData.held_balance}
+      availableBalance={balanceData.available_balance}
+      pendingPayouts={balanceData.pending_payouts}
+      totalPaidOut={balanceData.total_paid_out}
+    />
+
+    <div class="quick-actions">
+      <div class="action-card">
+        <h3>Butuh Bantuan?</h3>
+        <p>Pelajari lebih lanjut tentang cara kerja saldo dan pencairan dana.</p>
+        <a href="https://docs.escrowlite.com" target="_blank" rel="noopener noreferrer" class="action-link">
+          Lihat Dokumentasi
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+        </a>
+      </div>
+
+      <div class="action-card">
+        <h3>Atur Rekening Bank</h3>
+        <p>Tambahkan rekening bank untuk menarik dana Anda.</p>
+        <a href="/dashboard/settings?tab=bank" class="action-link">
+          Kelola Rekening
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14"></path>
+            <path d="M12 5v14"></path>
+          </svg>
+        </a>
+      </div>
     </div>
   </div>
 </DashboardLayout>
+
+<style>
+  .balance-page {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+  }
+
+  .page-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 0.5rem;
+  }
+
+  .page-subtitle {
+    font-size: 1rem;
+    color: #6b7280;
+  }
+
+  .quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .action-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .action-card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .action-card p {
+    font-size: 0.875rem;
+    color: #6b7280;
+    line-height: 1.5;
+  }
+
+  .action-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #3b82f6;
+    text-decoration: none;
+    align-self: flex-start;
+  }
+
+  .action-link:hover {
+    text-decoration: underline;
+  }
+
+  .action-link svg {
+    transition: transform 0.2s ease;
+  }
+
+  .action-link:hover svg {
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 768px) {
+    .page-header h1 {
+      font-size: 1.5rem;
+    }
+
+    .quick-actions {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

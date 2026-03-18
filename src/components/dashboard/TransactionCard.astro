@@ -1,0 +1,105 @@
+---
+/**
+ * TransactionCard Component
+ *
+ * Card-based display for mobile-friendly transaction list
+ */
+import StatusBadge from './StatusBadge.astro';
+import type { Transaction } from '@/lib/api-client';
+import { formatRupiah, formatDate } from '@/lib/api-client';
+
+interface Props {
+  transaction: Transaction;
+}
+
+const { transaction } = Astro.props;
+---
+
+<div class="transaction-card">
+  <div class="card-header">
+    <span class="transaction-id">#{transaction.id.slice(0, 8)}</span>
+    <StatusBadge status={transaction.status} />
+  </div>
+
+  <div class="card-body">
+    <div class="amount">{formatRupiah(transaction.amount)}</div>
+    <div class="buyer-email">{transaction.buyer_email}</div>
+    <div class="date">{formatDate(transaction.created_at)}</div>
+  </div>
+
+  <div class="card-footer">
+    <a href={`/dashboard/transactions/${transaction.id}`} class="view-link">
+      Lihat Detail →
+    </a>
+  </div>
+</div>
+
+<style>
+  .transaction-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    transition: box-shadow 0.2s;
+  }
+
+  .transaction-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .transaction-id {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    font-family: monospace;
+  }
+
+  .card-body {
+    margin-bottom: 0.75rem;
+  }
+
+  .amount {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 0.25rem;
+  }
+
+  .buyer-email {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .date {
+    font-size: 0.75rem;
+    color: #9ca3af;
+  }
+
+  .card-footer {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .view-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .view-link:hover {
+    text-decoration: underline;
+  }
+</style>

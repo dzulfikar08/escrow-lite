@@ -1,0 +1,612 @@
+---
+/**
+ * Transaction Detail Page
+ *
+ * Shows detailed information about a single transaction
+ * including buyer info, status timeline, and action buttons
+ */
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import StatusBadge from '@/components/dashboard/StatusBadge.astro';
+import { fetchTransaction, formatRupiah, formatDateTime, getStatusLabel } from '@/lib/api-client';
+import type { TransactionDetailResponse } from '@/lib/api-client';
+
+export const prerender = false;
+
+interface Props {
+  id: string;
+}
+
+const { id } = Astro.params;
+
+let transaction: TransactionDetailResponse | null = null;
+let error: string | null = null;
+
+try {
+  transaction = await fetchTransaction(id as string);
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Failed to load transaction';
+  console.error('Error fetching transaction:', e);
+}
+
+const canShip = transaction?.status === 'held' && !transaction.shipped_at;
+const trackingNumber = transaction?.metadata?.tracking_number as string | undefined;
+---
+
+<DashboardLayout title={`Transaksi #${id?.slice(0, 8)} - Escrow Lite`}>
+  <div class="transaction-detail-page">
+    <div class="page-header">
+      <a href="/dashboard/transactions" class="back-link">← Kembali ke Daftar</a>
+      <h1>Detail Transaksi</h1>
+    </div>
+
+    {error ? (
+      <div class="error-banner">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>{error}</span>
+      </div>
+    ) : transaction ? (
+      <div class="detail-content">
+        {/* Status & Amount Card */}
+        <div class="card status-card">
+          <div class="status-header">
+            <StatusBadge status={transaction.status} />
+            <div class="amount">{formatRupiah(transaction.amount)}</div>
+          </div>
+          <div class="status-meta">
+            <div class="meta-item">
+              <span class="label">ID Transaksi:</span>
+              <code class="value">{transaction.id}</code>
+            </div>
+            <div class="meta-item">
+              <span class="label">Tanggal Dibuat:</span>
+              <span class="value">{formatDateTime(transaction.created_at)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Buyer Information Card */}
+        <div class="card">
+          <h2>Informasi Pembeli</h2>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="label">Email:</span>
+              <span class="value">{transaction.buyer_email}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Telepon:</span>
+              <span class="value">{transaction.buyer_phone}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Transaction Details Card */}
+        <div class="card">
+          <h2>Detail Transaksi</h2>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="label">Jumlah:</span>
+              <span class="value">{formatRupiah(transaction.amount)}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Biaya Layanan:</span>
+              <span class="value">{formatRupiah(transaction.fee_amount)}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Jumlah Bersih:</span>
+              <span class="value">{formatRupiah(transaction.net_amount)}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Gateway Pembayaran:</span>
+              <span class="value">{transaction.gateway.toUpperCase()}</span>
+            </div>
+            {trackingNumber && (
+              <div class="info-item">
+                <span class="label">Nomor Resi:</span>
+                <span class="value">{trackingNumber}</span>
+              </div>
+            )}
+            {transaction.shipped_at && (
+              <div class="info-item">
+                <span class="label">Tanggal Dikirim:</span>
+                <span class="value">{formatDateTime(transaction.shipped_at)}</span>
+              </div>
+            )}
+            {transaction.released_at && (
+              <div class="info-item">
+                <span class="label">Tanggal Dana Dilepas:</span>
+                <span class="value">{formatDateTime(transaction.released_at)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Status Timeline Card */}
+        <div class="card">
+          <h2>Timeline Status</h2>
+          <div class="timeline">
+            <div class={`timeline-item ${transaction.status === 'pending' || ['funded', 'held', 'released', 'paid_out'].includes(transaction.status) ? 'active' : ''}`}>
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <div class="timeline-title">Menunggu Pembayaran</div>
+                <div class="timeline-time">{formatDateTime(transaction.created_at)}</div>
+              </div>
+            </div>
+
+            {transaction.status !== 'pending' && (
+              <div class={`timeline-item ${['funded', 'held', 'released', 'paid_out'].includes(transaction.status) ? 'active' : ''}`}>
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Pembayaran Diterima</div>
+                  <div class="timeline-time">{formatDateTime(transaction.updated_at)}</div>
+                </div>
+              </div>
+            )}
+
+            {['held', 'released', 'paid_out'].includes(transaction.status) && (
+              <div class={`timeline-item ${['held', 'released', 'paid_out'].includes(transaction.status) ? 'active' : ''}`}>
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Dana Ditahan</div>
+                  <div class="timeline-desc">Menunggu konfirmasi pembeli</div>
+                </div>
+              </div>
+            )}
+
+            {transaction.shipped_at && (
+              <div class="timeline-item active">
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Barang Dikirim</div>
+                  <div class="timeline-time">{formatDateTime(transaction.shipped_at)}</div>
+                </div>
+              </div>
+            )}
+
+            {['released', 'paid_out'].includes(transaction.status) && (
+              <div class="timeline-item active">
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Dana Dilepas</div>
+                  <div class="timeline-time">{transaction.released_at ? formatDateTime(transaction.released_at) : ''}</div>
+                </div>
+              </div>
+            )}
+
+            {transaction.status === 'paid_out' && (
+              <div class="timeline-item active">
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Sudah Ditarik</div>
+                  <div class="timeline-desc">Dana telah ditransfer ke rekening Anda</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Actions Card */}
+        {canShip && (
+          <div class="card actions-card">
+            <h2>Aksi</h2>
+            <div class="actions">
+              <button
+                id="shipButton"
+                class="btn btn-primary"
+                disabled
+              >
+                Tandai sebagai Dikirim
+              </button>
+              <p class="actions-hint">
+                Konfirmasi email akan dikirim ke pembeli setelah Anda menandai transaksi sebagai dikirim.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Ledger Entries Card */}
+        {transaction.ledger_entries && transaction.ledger_entries.length > 0 && (
+          <div class="card">
+            <h2>Riwayat Ledger</h2>
+            <div class="ledger-list">
+              {transaction.ledger_entries.map((entry) => (
+                <div class="ledger-entry">
+                  <div class="entry-header">
+                    <span class="entry-type">{entry.type}</span>
+                    <span class={`entry-direction ${entry.direction}`}>
+                      {entry.direction === 'credit' ? '+' : '-'}{formatRupiah(entry.amount)}
+                    </span>
+                  </div>
+                  <div class="entry-meta">
+                    <span class="entry-balance">Saldo: {formatRupiah(entry.balance_after)}</span>
+                    <span class="entry-time">{formatDateTime(entry.created_at)}</span>
+                  </div>
+                  {entry.note && (
+                    <div class="entry-note">{entry.note}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    ) : (
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Memuat transaksi...</p>
+      </div>
+    )}
+  </div>
+</DashboardLayout>
+
+{canShip && (
+  <script>
+    async function markAsShipped() {
+      const button = document.getElementById('shipButton') as HTMLButtonElement;
+      const trackingNumber = prompt('Masukkan nomor resi (opsional):');
+
+      if (trackingNumber !== null) {
+        button.disabled = true;
+        button.textContent = 'Memproses...';
+
+        try {
+          const response = await fetch(`/api/v1/transactions/${Astro.props.id}/ship`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ tracking_number: trackingNumber || undefined }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error?.message || 'Failed to mark as shipped');
+          }
+
+          // Reload page to show updated state
+          window.location.reload();
+        } catch (error) {
+          alert(error instanceof Error ? error.message : 'Terjadi kesalahan');
+          button.disabled = false;
+          button.textContent = 'Tandai sebagai Dikirim';
+        }
+      }
+    }
+
+    // Enable button when page loads
+    document.getElementById('shipButton')?.removeAttribute('disabled');
+    document.getElementById('shipButton')?.addEventListener('click', markAsShipped);
+  </script>
+)}
+
+<style>
+  .transaction-detail-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+  }
+
+  .back-link {
+    display: inline-block;
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+  }
+
+  .page-header h1 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+  }
+
+  .error-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 0.5rem;
+    color: #991b1b;
+  }
+
+  .detail-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    .detail-content {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .status-card {
+      grid-column: span 2;
+    }
+  }
+
+  .card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+  }
+
+  .card h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 1rem 0;
+  }
+
+  .status-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .amount {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .status-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .meta-item .label {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  .meta-item .value {
+    font-size: 0.875rem;
+    color: #111827;
+    font-weight: 500;
+  }
+
+  .meta-item code {
+    font-family: monospace;
+    background: #f3f4f6;
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .info-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .info-item .label {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  .info-item .value {
+    font-size: 0.9375rem;
+    color: #111827;
+    font-weight: 500;
+  }
+
+  .timeline {
+    position: relative;
+    padding-left: 2rem;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e5e7eb;
+  }
+
+  .timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+  }
+
+  .timeline-item:last-child {
+    padding-bottom: 0;
+  }
+
+  .timeline-dot {
+    position: absolute;
+    left: -2rem;
+    top: 0.25rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: #e5e7eb;
+    border: 2px solid white;
+  }
+
+  .timeline-item.active .timeline-dot {
+    background: #10b981;
+  }
+
+  .timeline-content {
+    position: relative;
+  }
+
+  .timeline-title {
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 0.25rem;
+  }
+
+  .timeline-desc {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  .timeline-time {
+    font-size: 0.8125rem;
+    color: #9ca3af;
+  }
+
+  .actions-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+
+  .actions-card h2 {
+    color: white;
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: white;
+    color: #667eea;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .actions-hint {
+    font-size: 0.875rem;
+    opacity: 0.9;
+    margin: 0;
+  }
+
+  .ledger-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .ledger-entry {
+    padding: 0.75rem;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+  }
+
+  .entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .entry-type {
+    font-weight: 600;
+    color: #111827;
+    text-transform: capitalize;
+  }
+
+  .entry-direction {
+    font-weight: 600;
+  }
+
+  .entry-direction.credit {
+    color: #10b981;
+  }
+
+  .entry-direction.debit {
+    color: #ef4444;
+  }
+
+  .entry-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8125rem;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+  }
+
+  .entry-note {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    font-style: italic;
+  }
+
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1rem;
+    gap: 1rem;
+    color: #6b7280;
+  }
+
+  .spinner {
+    width: 3rem;
+    height: 3rem;
+    border: 3px solid #e5e7eb;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+</style>

@@ -101,6 +101,27 @@ export class NotFoundError extends AppError {
 }
 
 /**
+ * Authorization errors (403)
+ * Thrown when user lacks permission for an action
+ */
+export class AuthorizationError extends AppError {
+  constructor(message: string = 'Access forbidden') {
+    super(message, 403, 'AUTHORIZATION_ERROR');
+  }
+
+  toJSON() {
+    return {
+      error: {
+        message: this.message,
+        code: this.code,
+        details: {},
+      },
+      meta: this.buildMeta(),
+    };
+  }
+}
+
+/**
  * Conflict errors (409)
  * Thrown when request conflicts with current state
  */
@@ -148,10 +169,52 @@ export class RateLimitError extends AppError {
 }
 
 /**
- * Handle errors and return appropriate Response for API routes
- * Converts any error to a Response object
+ * Payment errors (502)
+ * Thrown when payment gateway operations fail
  */
-export function handleError(error: unknown): Response {
+export class PaymentError extends AppError {
+  constructor(
+    message: string = 'Payment operation failed',
+    public gateway?: string,
+    public gatewayRef?: string
+  ) {
+    super(message, 502, 'PAYMENT_ERROR');
+    this.gateway = gateway;
+    this.gatewayRef = gatewayRef;
+  }
+
+  toJSON() {
+    const details: any = {};
+    if (this.gateway) details.gateway = this.gateway;
+    if (this.gatewayRef) details.gateway_ref = this.gatewayRef;
+
+    return {
+      error: {
+        message: this.message,
+        code: this.code,
+        details,
+      },
+      meta: this.buildMeta(),
+    };
+  }
+}
+
+/**
+ * Handle errors and return appropriate Response for API routes
+ * Converts any error to a Response object and tracks it in ErrorTracker if DB is available
+ */
+export function handleError(
+  error: unknown,
+  context?: {
+    db?: D1Database;
+    requestId?: string;
+    endpoint?: string;
+    method?: string;
+    userAgent?: string;
+    ip?: string;
+    userId?: string;
+  }
+): Response {
   let appError: AppError;
 
   // Already an AppError, use as-is
@@ -176,6 +239,27 @@ export function handleError(error: unknown): Response {
   // Unknown error type
   else {
     appError = new AppError('An unexpected error occurred', 500, 'INTERNAL_ERROR');
+  }
+
+  // Track error in ErrorTracker if database is available
+  if (context?.db) {
+    // Import ErrorTracker dynamically to avoid circular dependencies
+    import('./monitoring/error-tracker').then(({ ErrorTracker }) => {
+      const errorTracker = new ErrorTracker(context.db!);
+      errorTracker.capture(appError, {
+        requestId: context.requestId,
+        endpoint: context.endpoint,
+        method: context.method,
+        userAgent: context.userAgent,
+        ip: context.ip,
+        userId: context.userId,
+      }).catch(trackError => {
+        // Don't throw when error tracking fails
+        console.error('Failed to track error:', trackError);
+      });
+    }).catch(() => {
+      // Ignore import errors
+    });
   }
 
   const errorJson = appError.toJSON();

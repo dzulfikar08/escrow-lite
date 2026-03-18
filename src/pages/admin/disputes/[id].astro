@@ -1,0 +1,122 @@
+---
+/**
+ * Admin Dispute Detail Page
+ * Displays detailed dispute information and resolution form
+ */
+
+import DisputeDetail from '@/components/admin/DisputeDetail.astro';
+import ResolutionPanel from '@/components/admin/ResolutionPanel.astro';
+import Layout from '@/layouts/Layout.astro';
+
+export const prerender = false;
+
+// Get dispute ID from URL
+const disputeId = Astro.params.id;
+
+if (!disputeId) {
+  return Astro.redirect('/admin/disputes');
+}
+
+// Check authentication
+const session = Astro.locals.session;
+if (!session?.user?.id) {
+  return Astro.redirect('/login');
+}
+
+// Check admin access
+const userEmail = session.user.email;
+if (!userEmail || !userEmail.includes('admin')) {
+  return Astro.redirect('/dashboard');
+}
+
+// Fetch dispute details from API
+const apiUrl = `${Astro.request.url.origin}/admin/api/disputes/${disputeId}`;
+const response = await fetch(apiUrl);
+
+if (!response.ok) {
+  return Astro.redirect('/admin/disputes');
+}
+
+const result = await response.json();
+const dispute = result.data;
+
+if (!dispute) {
+  return Astro.redirect('/admin/disputes');
+}
+
+// Check if dispute can be resolved
+const canResolve = ['open', 'seller_responding', 'under_review'].includes(dispute.status);
+---
+
+<Layout title={`Dispute #${disputeId.slice(0, 8)} - Admin`}>
+  <div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <a
+              href="/admin/disputes"
+              class="text-gray-400 hover:text-gray-500"
+            >
+              <svg
+                class="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                />
+              </svg>
+            </a>
+            <div>
+              <h1 class="text-3xl font-bold text-gray-900">Dispute Details</h1>
+              <p class="mt-1 text-sm text-gray-500">
+                Review evidence and resolve the dispute
+              </p>
+            </div>
+          </div>
+          <div class="flex space-x-3">
+            <a
+              href="/admin"
+              class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Admin Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left Column: Dispute Details -->
+        <div class="lg:col-span-2 space-y-6">
+          <DisputeDetail dispute={dispute} />
+        </div>
+
+        <!-- Right Column: Resolution Panel -->
+        <div class="lg:col-span-1">
+          <div class="sticky top-6">
+            <ResolutionPanel
+              disputeId={dispute.id}
+              disputeStatus={dispute.status}
+              canResolve={canResolve}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  :global(body) {
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+</style>

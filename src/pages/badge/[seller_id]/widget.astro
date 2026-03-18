@@ -1,0 +1,175 @@
+---
+/**
+ * Badge Widget Iframe Page
+ *
+ * Public embeddable trust badge widget for sellers
+ * Route: /badge/[seller_id]/widget
+ */
+import BadgeWidget from '@/components/badge/BadgeWidget.astro';
+import { calculateSellerStats } from '@/lib/badge/stats';
+import { getDb } from '@/db/client';
+
+interface Props {
+  seller_id: string;
+}
+
+// Get URL parameters for customization
+const url = Astro.url;
+const sellerId = Astro.params.seller_id as string;
+
+// Parse customization options from query params
+const theme = (url.searchParams.get('theme') || 'light') === 'dark' ? 'dark' : 'light';
+const size = ['small', 'medium', 'large'].includes(url.searchParams.get('size') || '')
+  ? (url.searchParams.get('size') as 'small' | 'medium' | 'large')
+  : 'medium';
+const color = ['blue', 'green', 'neutral'].includes(url.searchParams.get('color') || '')
+  ? (url.searchParams.get('color') as 'blue' | 'green' | 'neutral')
+  : 'blue';
+const showRating = url.searchParams.get('showRating') !== 'false';
+const showStats = url.searchParams.get('showStats') !== 'false';
+
+try {
+  // Get database connection
+  const db = getDb(Astro.locals.runtime.env);
+
+  // Calculate seller statistics
+  const stats = await calculateSellerStats(db, sellerId);
+
+  // Generate verification URL
+  const verifyUrl = `${url.origin}/badge/${sellerId}/verify`;
+---
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Escrow Lite - Trust Badge</title>
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+
+    <!-- Prevent iframe from being cached too long -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <!-- Auto-refresh every 60 seconds -->
+    <script>
+      // Auto-refresh widget every 60 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 60000);
+    </script>
+
+    <style is:global>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+      }
+
+      /* Make badge clickable */
+      a {
+        text-decoration: none;
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+    <a href={verifyUrl} target="_blank" rel="noopener noreferrer">
+      <BadgeWidget
+        stats={stats}
+        theme={theme}
+        size={size}
+        color={color}
+        showRating={showRating}
+        showStats={showStats}
+        clickable={true}
+      />
+    </a>
+  </body>
+</html>
+---
+} catch (error) {
+  // Handle errors gracefully
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+---
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Escrow Lite - Badge Error</title>
+    <style is:global>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        background-color: #fef2f2;
+      }
+
+      .error-container {
+        text-align: center;
+        max-width: 300px;
+      }
+
+      .error-icon {
+        width: 32px;
+        height: 32px;
+        color: #dc2626;
+        margin-bottom: 0.5rem;
+      }
+
+      .error-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #991b1b;
+        margin-bottom: 0.25rem;
+      }
+
+      .error-message {
+        font-size: 0.75rem;
+        color: #b91c1c;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="error-container">
+      <svg class="error-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <div class="error-title">Badge Unavailable</div>
+      <div class="error-message">
+        {errorMessage}
+      </div>
+    </div>
+  </body>
+</html>
+---
+}

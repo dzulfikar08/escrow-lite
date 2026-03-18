@@ -1,0 +1,531 @@
+---
+/**
+ * Badge Widget Demo Page
+ *
+ * Demo page showing different badge widget configurations
+ */
+---
+
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Badge Widget Demo | Escrow Lite</title>
+    <style is:global>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        line-height: 1.6;
+        color: #111827;
+        background-color: #f9fafb;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: #111827;
+      }
+
+      .subtitle {
+        font-size: 1.125rem;
+        color: #6b7280;
+        margin-bottom: 3rem;
+      }
+
+      .section {
+        margin-bottom: 3rem;
+      }
+
+      .section-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #111827;
+      }
+
+      .section-description {
+        color: #6b7280;
+        margin-bottom: 1.5rem;
+      }
+
+      .badge-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .badge-showcase {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 2rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+      }
+
+      .badge-preview {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        background-color: #f3f4f6;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        min-height: 120px;
+      }
+
+      .badge-preview.dark {
+        background-color: #1f2937;
+      }
+
+      .badge-code {
+        background-color: #1f2937;
+        color: #f3f4f6;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 0.875rem;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      .badge-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+      }
+
+      .info-box {
+        background-color: #dbeafe;
+        border-left: 4px solid #2563eb;
+        padding: 1rem 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .info-box h3 {
+        color: #1e40af;
+        margin-bottom: 0.5rem;
+      }
+
+      .info-box p {
+        color: #1e3a8a;
+      }
+
+      .info-box code {
+        background-color: #bfdbfe;
+        padding: 0.125rem 0.375rem;
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+      }
+
+      @media (max-width: 768px) {
+        .badge-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Escrow Lite Badge Widget</h1>
+      <p class="subtitle">
+        Embeddable trust badge for showcasing seller verification and transaction statistics
+      </p>
+
+      <!-- Info Box -->
+      <div class="info-box">
+        <h3>Demo Note</h3>
+        <p>
+          The examples below use a placeholder <code>demo-seller</code> ID that will show error badges.
+          Replace <code>SELLER_ID</code> with your actual seller ID to see live statistics.
+          The badge will automatically load your seller's transaction data.
+        </p>
+      </div>
+
+      <!-- Size Variants -->
+      <section class="section">
+        <h2 class="section-title">Size Variants</h2>
+        <p class="section-description">
+          Choose the size that fits your website layout
+        </p>
+
+        <div class="badge-grid">
+          <!-- Small -->
+          <div class="badge-showcase">
+            <p class="badge-label">Small (150x60)</p>
+            <div class="badge-preview">
+              <iframe
+                src="/badge/demo-seller/widget?size=small"
+                width="150"
+                height="60"
+                frameborder="0"
+                scrolling="no">
+              </iframe>
+            </div>
+            <div class="badge-code">&lt;iframe
+  src="https://escrow-lite.id/badge/SELLER_ID/widget?size=small"
+  width="150"
+  height="60"
+  frameborder="0"
+  scrolling="no"&gt;
+&lt;/iframe&gt;</div>
+          </div>
+
+          <!-- Medium -->
+          <div class="badge-showcase">
+            <p class="badge-label">Medium (200x80)</p>
+            <div class="badge-preview">
+              <iframe
+                src="/badge/demo-seller/widget?size=medium"
+                width="200"
+                height="80"
+                frameborder="0"
+                scrolling="no">
+              </iframe>
+            </div>
+            <div class="badge-code">&lt;iframe
+  src="https://escrow-lite.id/badge/SELLER_ID/widget?size=medium"
+  width="200"
+  height="80"
+  frameborder="0"
+  scrolling="no"&gt;
+&lt;/iframe&gt;</div>
+          </div>
+
+          <!-- Large -->
+          <div class="badge-showcase">
+            <p class="badge-label">Large (250x100)</p>
+            <div class="badge-preview">
+              <iframe
+                src="/badge/demo-seller/widget?size=large"
+                width="250"
+                height="100"
+                frameborder="0"
+                scrolling="no">
+              </iframe>
+            </div>
+            <div class="badge-code">&lt;iframe
+  src="https://escrow-lite.id/badge/SELLER_ID/widget?size=large"
+  width="250"
+  height="100"
+  frameborder="0"
+  scrolling="no"&gt;
+&lt;/iframe&gt;</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Color Variants -->
+      <section class="section">
+        <h2 class="section-title">Color Variants</h2>
+        <p class="section-description">
+          Match the badge color to your brand
+        </p>
+
+        <div class="badge-grid">
+          <!-- Blue -->
+          <div class="badge-showcase">
+            <p class="badge-label">Blue</p>
+            <div class="badge-preview">
+              <iframe
+                src="/badge/demo-seller/widget?color=blue"
+                width="200"
+                height="80"
+                frameborder="0"
+                scrolling="no">
+              </iframe>
+            </div>
+            <div class="badge-code">?color=blue</div>
+          </div>
+
+          <!-- Green -->
+          <div class="badge-showcase">
+            <p class="badge-label">Green</p>
+            <div class="badge-preview">
+              <iframe
+                src="/badge/demo-seller/widget?color=green"
+                width="200"
+                height="80"
+                frameborder="0"
+                scrolling="no">
+              </iframe>
+            </div>
+            <div class="badge-code">?color=green</div>
+          </div>
+
+          <!-- Neutral -->
+          <div class="badge-showcase">
+            <p class="badge-label">Neutral</p>
+            <div class="badge-preview">
+              <iframe
+                src="/badge/demo-seller/widget?color=neutral"
+                width="200"
+                height="80"
+                frameborder="0"
+                scrolling="no">
+              </iframe>
+            </div>
+            <div class="badge-code">?color=neutral</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Theme Variants -->
+      <section class="section">
+        <h2 class="section-title">Theme Variants</h2>
+        <p class="section-description">
+          Light or dark theme to match your website
+        </p>
+
+        <div class="badge-grid">
+          <!-- Light -->
+          <div class="badge-showcase">
+            <p class="badge-label">Light Theme</p>
+            <div class="badge-preview">
+              <iframe
+                src="/badge/demo-seller/widget?theme=light"
+                width="200"
+                height="80"
+                frameborder="0"
+                scrolling="no">
+              </iframe>
+            </div>
+            <div class="badge-code">?theme=light</div>
+          </div>
+
+          <!-- Dark -->
+          <div class="badge-showcase">
+            <p class="badge-label">Dark Theme</p>
+            <div class="badge-preview dark">
+              <iframe
+                src="/badge/demo-seller/widget?theme=dark"
+                width="200"
+                height="80"
+                frameborder="0"
+                scrolling="no">
+              </iframe>
+            </div>
+            <div class="badge-code">?theme=dark</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Minimal Variant -->
+      <section class="section">
+        <h2 class="section-title">Minimal Variant</h2>
+        <p class="section-description">
+          Hide statistics for a cleaner look
+        </p>
+
+        <div class="badge-grid">
+          <div class="badge-showcase">
+            <p class="badge-label">Logo Only (no stats)</p>
+            <div class="badge-preview">
+              <iframe
+                src="/badge/demo-seller/widget?showStats=false"
+                width="200"
+                height="80"
+                frameborder="0"
+                scrolling="no">
+              </iframe>
+            </div>
+            <div class="badge-code">?showStats=false</div>
+          </div>
+
+          <div class="badge-showcase">
+            <p class="badge-label">No Verification Badge</p>
+            <div class="badge-preview">
+              <iframe
+                src="/badge/demo-seller/widget?showRating=false"
+                width="200"
+                height="80"
+                frameborder="0"
+                scrolling="no">
+              </iframe>
+            </div>
+            <div class="badge-code">?showRating=false</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Combined Options -->
+      <section class="section">
+        <h2 class="section-title">Combined Options</h2>
+        <p class="section-description">
+          Mix and match options for your perfect badge
+        </p>
+
+        <div class="badge-grid">
+          <div class="badge-showcase">
+            <p class="badge-label">Large Green Dark</p>
+            <div class="badge-preview dark">
+              <iframe
+                src="/badge/demo-seller/widget?size=large&color=green&theme=dark"
+                width="250"
+                height="100"
+                frameborder="0"
+                scrolling="no">
+              </iframe>
+            </div>
+            <div class="badge-code">?size=large&color=green&theme=dark</div>
+          </div>
+
+          <div class="badge-showcase">
+            <p class="badge-label">Small Blue Minimal</p>
+            <div class="badge-preview">
+              <iframe
+                src="/badge/demo-seller/widget?size=small&color=blue&showStats=false"
+                width="150"
+                height="60"
+                frameborder="0"
+                scrolling="no">
+              </iframe>
+            </div>
+            <div class="badge-code">?size=small&color=blue&showStats=false</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- JavaScript Widget -->
+      <section class="section">
+        <h2 class="section-title">JavaScript Widget</h2>
+        <p class="section-description">
+          For websites that cannot use iframes (WordPress, Wix, etc.), use the JavaScript widget
+        </p>
+
+        <div class="info-box">
+          <h3>JavaScript Widget Integration</h3>
+          <p>
+            Simply add this script tag to your website's HTML. The widget will automatically
+            position itself and update every 60 seconds.
+          </p>
+        </div>
+
+        <div class="badge-grid">
+          <!-- Default JS Widget -->
+          <div class="badge-showcase">
+            <p class="badge-label">Default Configuration</p>
+            <div class="badge-preview" id="js-widget-default">
+              <!-- JavaScript widget will be rendered here -->
+              <script
+                src="/badge/demo-seller/widget.js"
+                data-size="medium"
+                data-theme="light"
+                data-color="blue"
+                data-show-rating="true"
+                data-show-stats="true"
+                async defer>
+              </script>
+            </div>
+            <div class="badge-code">&lt;script
+  src="https://escrow-lite.id/badge/SELLER_ID/widget.js"
+  data-size="medium"
+  data-theme="light"
+  data-color="blue"
+  data-show-rating="true"
+  data-show-stats="true"
+  async defer&gt;
+&lt;/script&gt;</div>
+          </div>
+
+          <!-- Custom JS Widget -->
+          <div class="badge-showcase">
+            <p class="badge-label">Dark Theme, Green, Large</p>
+            <div class="badge-preview dark" id="js-widget-custom">
+              <!-- JavaScript widget will be rendered here -->
+              <script
+                src="/badge/demo-seller/widget.js"
+                data-size="large"
+                data-theme="dark"
+                data-color="green"
+                data-show-rating="true"
+                data-show-stats="true"
+                async defer>
+              </script>
+            </div>
+            <div class="badge-code">&lt;script
+  src="https://escrow-lite.id/badge/SELLER_ID/widget.js"
+  data-size="large"
+  data-theme="dark"
+  data-color="green"
+  async defer&gt;
+&lt;/script&gt;</div>
+          </div>
+
+          <!-- Minimal JS Widget -->
+          <div class="badge-showcase">
+            <p class="badge-label">Minimal (No Stats)</p>
+            <div class="badge-preview" id="js-widget-minimal">
+              <!-- JavaScript widget will be rendered here -->
+              <script
+                src="/badge/demo-seller/widget.js"
+                data-size="small"
+                data-theme="light"
+                data-color="neutral"
+                data-show-rating="true"
+                data-show-stats="false"
+                async defer>
+              </script>
+            </div>
+            <div class="badge-code">&lt;script
+  src="https://escrow-lite.id/badge/SELLER_ID/widget.js"
+  data-size="small"
+  data-show-stats="false"
+  async defer&gt;
+&lt;/script&gt;</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Integration Tips -->
+      <section class="section">
+        <h2 class="section-title">Integration Tips</h2>
+        <div class="info-box">
+          <h3>Best Practices</h3>
+          <ul style="color: #1e3a8a; line-height: 1.8;">
+            <li>Place the badge prominently on product pages or checkout</li>
+            <li>Choose a size that fits naturally in your layout</li>
+            <li>Match the theme to your website's color scheme</li>
+            <li>The badge automatically refreshes every 60 seconds</li>
+            <li>Clicking the badge opens the public verification page</li>
+            <li>Use the JavaScript widget if you can't use iframes</li>
+            <li>The JavaScript widget works on any platform (WordPress, Wix, Squarespace, etc.)</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Data Attributes Reference -->
+      <section class="section">
+        <h2 class="section-title">JavaScript Widget Data Attributes</h2>
+        <p class="section-description">
+          Customize the JavaScript widget using data attributes on the script tag
+        </p>
+
+        <div class="badge-showcase">
+          <div class="badge-code" style="white-space: normal; line-height: 2;">
+            <strong>data-size:</strong> "small" | "medium" | "large" (default: "medium")<br>
+            <strong>data-theme:</strong> "light" | "dark" (default: "light")<br>
+            <strong>data-color:</strong> "blue" | "green" | "neutral" (default: "blue")<br>
+            <strong>data-show-rating:</strong> "true" | "false" (default: "true")<br>
+            <strong>data-show-stats:</strong> "true" | "false" (default: "true")<br>
+            <strong>data-position:</strong> "auto" | "left" | "center" | "right" (default: "auto")
+          </div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

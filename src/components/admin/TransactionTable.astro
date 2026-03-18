@@ -1,0 +1,263 @@
+---
+/**
+ * TransactionTable - Admin transaction data table
+ *
+ * Displays transactions in a table format with sorting and filtering
+ * Shows seller info, buyer info, amounts, status, and dates
+ */
+import StatusBadge from '@/components/dashboard/StatusBadge';
+
+interface Transaction {
+  id: string;
+  seller_id: string;
+  seller_name: string;
+  seller_email: string;
+  buyer_email: string;
+  buyer_phone?: string;
+  amount: number;
+  fee_amount: number;
+  net_amount: number;
+  status: string;
+  gateway?: string;
+  payment_method?: string;
+  created_at: string;
+  released_at?: string;
+  refunded_at?: string;
+}
+
+interface Props {
+  transactions: Transaction[];
+}
+
+const { transactions } = Astro.props;
+
+// Format currency
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+// Format date
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('id-ID', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+};
+
+// Truncate email for privacy
+const truncateEmail = (email: string) => {
+  const [name, domain] = email.split('@');
+  if (name.length <= 3) return email;
+  return `${name.slice(0, 3)}***@${domain}`;
+};
+---
+
+<table class="transaction-table">
+  <thead>
+    <tr>
+      <th>Transaction ID</th>
+      <th>Seller</th>
+      <th>Buyer</th>
+      <th>Amount</th>
+      <th>Fee</th>
+      <th>Net</th>
+      <th>Status</th>
+      <th>Created</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {transactions.map((transaction) => (
+      <tr class={transaction.status}>
+        <td class="transaction-id">
+          <a href={`/admin/transactions/${transaction.id}`}>
+            {transaction.id.slice(0, 12)}...
+          </a>
+        </td>
+        <td class="seller">
+          <div class="seller-name">{transaction.seller_name}</div>
+          <div class="seller-email">{truncateEmail(transaction.seller_email)}</div>
+        </td>
+        <td class="buyer">
+          <div class="buyer-email">{truncateEmail(transaction.buyer_email)}</div>
+        </td>
+        <td class="amount">{formatCurrency(transaction.amount)}</td>
+        <td class="fee">{formatCurrency(transaction.fee_amount)}</td>
+        <td class="net-amount">{formatCurrency(transaction.net_amount)}</td>
+        <td class="status">
+          <StatusBadge status={transaction.status} />
+        </td>
+        <td class="created">{formatDate(transaction.created_at)}</td>
+        <td class="actions">
+          <a
+            href={`/admin/transactions/${transaction.id}`}
+            class="btn-view"
+            title="View details"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </a>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+<style>
+  .transaction-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  .transaction-table thead {
+    background-color: #f9fafb;
+    border-bottom: 2px solid #e5e7eb;
+  }
+
+  .transaction-table th {
+    padding: 0.875rem 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+  }
+
+  .transaction-table tbody tr {
+    border-bottom: 1px solid #e5e7eb;
+    transition: background-color 0.15s;
+  }
+
+  .transaction-table tbody tr:hover {
+    background-color: #f9fafb;
+  }
+
+  .transaction-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .transaction-table td {
+    padding: 1rem;
+    font-size: 0.875rem;
+  }
+
+  .transaction-id a {
+    color: #2563eb;
+    text-decoration: none;
+    font-family: 'Courier New', monospace;
+    font-weight: 500;
+  }
+
+  .transaction-id a:hover {
+    text-decoration: underline;
+  }
+
+  .seller-name,
+  .buyer-email {
+    font-weight: 500;
+    color: #111827;
+  }
+
+  .seller-email {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.125rem;
+  }
+
+  .amount {
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .fee {
+    color: #dc2626;
+  }
+
+  .net-amount {
+    font-weight: 600;
+    color: #059669;
+  }
+
+  .created {
+    color: #6b7280;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+
+  .actions {
+    text-align: center;
+  }
+
+  .btn-view {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    background: white;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-view:hover {
+    background-color: #2563eb;
+    border-color: #2563eb;
+    color: white;
+  }
+
+  /* Status-based row styling */
+  tbody tr.pending {
+    background-color: #fef3c7;
+  }
+
+  tbody tr.funded {
+    background-color: #dbeafe;
+  }
+
+  tbody tr.held {
+    background-color: #e0e7ff;
+  }
+
+  tbody tr.released {
+    background-color: #d1fae5;
+  }
+
+  tbody tr.disputed {
+    background-color: #fee2e2;
+  }
+
+  tbody tr.refunded {
+    background-color: #f3f4f6;
+  }
+
+  @media (max-width: 1024px) {
+    .transaction-table {
+      font-size: 0.8125rem;
+    }
+
+    .transaction-table th,
+    .transaction-table td {
+      padding: 0.75rem 0.5rem;
+    }
+  }
+</style>

@@ -1,0 +1,515 @@
+---
+/**
+ * AdminActions - Admin action buttons for transaction management
+ *
+ * Provides action buttons for:
+ * - Manual release of funds to seller
+ * - Force refund to buyer
+ * - Add admin notes
+ */
+import StatusBadge from '@/components/dashboard/StatusBadge';
+
+interface Props {
+  transactionId: string;
+  status: string;
+  adminRole: 'admin' | 'super_admin';
+}
+
+const { transactionId, status, adminRole } = Astro.props;
+
+// Determine which actions are available based on status
+const canRelease = ['funded', 'held', 'disputed'].includes(status);
+const canRefund = ['funded', 'held', 'disputed'].includes(status);
+const isReleased = status === 'released';
+const isRefunded = status === 'refunded';
+const isExpired = status === 'expired';
+---
+
+<div class="admin-actions">
+  <div class="actions-header">
+    <h3>Admin Actions</h3>
+    <p class="warning-text">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+      All actions are logged and require justification
+    </p>
+  </div>
+
+  <div class="actions-list">
+    {canRelease && (
+      <button
+        class="btn-action btn-release"
+        data-action="release"
+        data-transaction-id={transactionId}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        Release Funds to Seller
+      </button>
+    )}
+
+    {canRefund && (
+      <button
+        class="btn-action btn-refund"
+        data-action="refund"
+        data-transaction-id={transactionId}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+          <path d="M3 3v5h5"></path>
+        </svg>
+        Refund to Buyer
+      </button>
+    )}
+
+    {isReleased && (
+      <div class="action-status success">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        Funds released to seller
+      </div>
+    )}
+
+    {isRefunded && (
+      <div class="action-status info">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        Transaction refunded to buyer
+      </div>
+    )}
+
+    {isExpired && (
+      <div class="action-status warning">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        Transaction expired - no actions available
+      </div>
+    )}
+
+    <button
+      class="btn-action btn-notes"
+      data-action="notes"
+      data-transaction-id={transactionId}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+      </svg>
+      Add Admin Notes
+    </button>
+  </div>
+</div>
+
+<!-- Modal for Action Confirmation -->
+<dialog id="actionModal" class="action-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="modalTitle">Confirm Action</h2>
+      <button id="closeModal" class="btn-close">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p id="modalDescription">Please provide a reason for this action:</p>
+
+      <form id="actionForm">
+        <input type="hidden" id="actionType" name="action" />
+        <input type="hidden" id="transactionId" name="transactionId" value={transactionId} />
+
+        <div class="form-group">
+          <label for="reason">Reason (required, min 10 characters)</label>
+          <textarea
+            id="reason"
+            name="reason"
+            rows="4"
+            required
+            minlength="10"
+            placeholder="Please explain why this action is necessary..."
+          ></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" id="cancelAction" class="btn btn-secondary">
+            Cancel
+          </button>
+          <button type="submit" id="confirmAction" class="btn btn-primary">
+            Confirm
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</dialog>
+
+<style>
+  .admin-actions {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+  }
+
+  .actions-header {
+    margin-bottom: 1rem;
+  }
+
+  .actions-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .warning-text {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: #dc2626;
+    margin: 0;
+  }
+
+  .warning-text svg {
+    flex-shrink: 0;
+  }
+
+  .actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .btn-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-release {
+    background-color: #059669;
+    color: white;
+  }
+
+  .btn-release:hover {
+    background-color: #047857;
+  }
+
+  .btn-refund {
+    background-color: #dc2626;
+    color: white;
+  }
+
+  .btn-refund:hover {
+    background-color: #b91c1c;
+  }
+
+  .btn-notes {
+    background-color: #6b7280;
+    color: white;
+  }
+
+  .btn-notes:hover {
+    background-color: #4b5563;
+  }
+
+  .action-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+  }
+
+  .action-status.success {
+    background-color: #d1fae5;
+    color: #065f46;
+  }
+
+  .action-status.info {
+    background-color: #dbeafe;
+    color: #1e40af;
+  }
+
+  .action-status.warning {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+
+  /* Modal Styles */
+  .action-modal {
+    border: none;
+    border-radius: 0.75rem;
+    padding: 0;
+    max-width: 600px;
+    width: 90%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+
+  .action-modal::backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  .modal-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .modal-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+  }
+
+  .btn-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+    border: none;
+    background: none;
+    color: #6b7280;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    transition: all 0.15s;
+  }
+
+  .btn-close:hover {
+    background-color: #f3f4f6;
+    color: #111827;
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+  }
+
+  .modal-body p {
+    color: #6b7280;
+    margin: 0 0 1rem 0;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.9375rem;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+  }
+
+  .btn {
+    padding: 0.625rem 1.25rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-secondary {
+    background-color: #6b7280;
+    color: white;
+  }
+
+  .btn-secondary:hover {
+    background-color: #4b5563;
+  }
+
+  .btn-primary {
+    background-color: #2563eb;
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background-color: #1d4ed8;
+  }
+
+  @media (max-width: 640px) {
+    .actions-list {
+      gap: 0.5rem;
+    }
+
+    .form-actions {
+      flex-direction: column;
+    }
+
+    .form-actions .btn {
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  // Modal functionality
+  const modal = document.getElementById('actionModal') as HTMLDialogElement;
+  const closeModal = document.getElementById('closeModal') as HTMLButtonElement;
+  const cancelAction = document.getElementById('cancelAction') as HTMLButtonElement;
+  const actionForm = document.getElementById('actionForm') as HTMLFormElement;
+
+  // Open modal for each action button
+  document.querySelectorAll('.btn-action').forEach((button) => {
+    button.addEventListener('click', (e) => {
+      const target = e.currentTarget as HTMLElement;
+      const action = target.dataset.action;
+      const transactionId = target.dataset.transactionId;
+
+      if (!action || !transactionId) return;
+
+      // Set action type and transaction ID
+      const actionInput = document.getElementById('actionType') as HTMLInputElement;
+      actionInput.value = action;
+
+      // Update modal title and description based on action
+      const modalTitle = document.getElementById('modalTitle') as HTMLHeadingElement;
+      const modalDescription = document.getElementById('modalDescription') as HTMLParagraphElement;
+
+      if (action === 'release') {
+        modalTitle.textContent = 'Release Funds to Seller';
+        modalDescription.textContent =
+          'This will release the held funds to the seller. This action cannot be undone. Please provide a reason:';
+      } else if (action === 'refund') {
+        modalTitle.textContent = 'Refund to Buyer';
+        modalDescription.textContent =
+          'This will refund the transaction to the buyer. This action cannot be undone. Please provide a reason:';
+      } else if (action === 'notes') {
+        modalTitle.textContent = 'Add Admin Notes';
+        modalDescription.textContent = 'Add notes to this transaction for future reference:';
+      }
+
+      modal.showModal();
+    });
+  });
+
+  // Close modal handlers
+  closeModal.addEventListener('click', () => {
+    modal.close();
+  });
+
+  cancelAction.addEventListener('click', () => {
+    modal.close();
+  });
+
+  // Close modal when clicking backdrop
+  modal.addEventListener('click', (e) => {
+    const rect = modal.getBoundingClientRect();
+    const isInDialog =
+      rect.top <= e.clientY &&
+      e.clientY <= rect.top + rect.height &&
+      rect.left <= e.clientX &&
+      e.clientX <= rect.left + rect.width;
+
+    if (!isInDialog) {
+      modal.close();
+    }
+  });
+
+  // Form submission
+  actionForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(actionForm);
+    const action = formData.get('action') as string;
+    const reason = formData.get('reason') as string;
+    const transactionId = formData.get('transactionId') as string;
+
+    if (!reason || reason.length < 10) {
+      alert('Reason must be at least 10 characters');
+      return;
+    }
+
+    try {
+      let endpoint = '';
+      if (action === 'release') {
+        endpoint = `/admin/api/transactions/${transactionId}/release`;
+      } else if (action === 'refund') {
+        endpoint = `/admin/api/transactions/${transactionId}/refund`;
+      } else if (action === 'notes') {
+        // Notes would be a different endpoint
+        alert('Notes feature coming soon');
+        return;
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reason }),
+      });
+
+      if (response.ok) {
+        // Reload page to show updated state
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        alert(error.error?.message || 'Action failed');
+      }
+    } catch (error) {
+      console.error('Error performing action:', error);
+      alert('An error occurred. Please try again.');
+    }
+  });
+</script>

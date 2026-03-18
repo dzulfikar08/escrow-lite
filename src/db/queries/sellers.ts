@@ -9,15 +9,26 @@ export const GET_SELLER_TRANSACTIONS = `
   SELECT
     id,
     buyer_email,
+    buyer_phone,
     amount,
+    fee_rate,
     fee_amount,
     net_amount,
     status,
     gateway,
+    gateway_transaction_id as gateway_ref,
+    auto_release_days,
+    auto_release_at,
+    absolute_expire_at,
+    shipped_at,
+    release_reason,
+    refunded_at,
+    refund_reason,
+    metadata,
+    last_checked_at,
     created_at,
     updated_at,
-    released_at,
-    refunded_at
+    released_at
   FROM transactions
   WHERE seller_id = ?
   /*CONDITIONAL*/
@@ -33,6 +44,52 @@ export const COUNT_SELLER_TRANSACTIONS = `
   FROM transactions
   WHERE seller_id = ?
   /*CONDITIONAL*/
+`;
+
+/**
+ * Search transactions by ID or buyer email
+ */
+export const SEARCH_SELLER_TRANSACTIONS = `
+  SELECT
+    id,
+    buyer_email,
+    buyer_phone,
+    amount,
+    fee_rate,
+    fee_amount,
+    net_amount,
+    status,
+    gateway,
+    gateway_transaction_id as gateway_ref,
+    auto_release_days,
+    auto_release_at,
+    absolute_expire_at,
+    shipped_at,
+    release_reason,
+    refunded_at,
+    refund_reason,
+    metadata,
+    last_checked_at,
+    created_at,
+    updated_at,
+    released_at
+  FROM transactions
+  WHERE seller_id = ?
+    AND (id LIKE ? OR buyer_email LIKE ?)
+  /*STATUS_CONDITIONAL*/
+  ORDER BY created_at DESC
+  LIMIT ? OFFSET ?
+`;
+
+/**
+ * Count search results
+ */
+export const COUNT_SEARCH_RESULTS = `
+  SELECT COUNT(*) as count
+  FROM transactions
+  WHERE seller_id = ?
+    AND (id LIKE ? OR buyer_email LIKE ?)
+  /*STATUS_CONDITIONAL*/
 `;
 
 /**
@@ -150,4 +207,22 @@ export const GET_SELLER_BY_API_KEY = `
     AND ak.revoked_at IS NULL
     AND (ak.expires_at IS NULL OR ak.expires_at > datetime('now'))
   LIMIT 1
+`;
+
+/**
+ * Get seller's bank accounts
+ */
+export const GET_SELLER_BANK_ACCOUNTS = `
+  SELECT
+    id,
+    bank_code,
+    account_number,
+    account_name,
+    is_primary,
+    verified_at,
+    created_at,
+    updated_at
+  FROM seller_bank_accounts
+  WHERE seller_id = ?
+  ORDER BY is_primary DESC, created_at DESC
 `;

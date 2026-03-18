@@ -1,0 +1,281 @@
+---
+/**
+ * Error Monitoring Dashboard
+ *
+ * Admin dashboard for viewing error statistics, trends, and detailed logs.
+ * Provides real-time error rate monitoring and alerting capabilities.
+ */
+
+import Layout from '@/layouts/Layout.astro';
+import { verifyAdminPage } from '@/lib/admin-auth';
+
+// Verify admin authentication
+const admin = await verifyAdminPage(Astro);
+
+// Redirect if not authenticated
+if (!admin) {
+  return Astro.redirect('/admin/login');
+}
+---
+
+<Layout title="Error Monitoring - Escrow Lite Admin">
+  <div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">Error Monitoring</h1>
+      <p class="text-gray-600 mt-2">
+        Monitor application errors, track trends, and identify issues
+      </p>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600">Total Errors</p>
+            <p class="text-2xl font-bold text-gray-900" id="total-errors">-</p>
+          </div>
+          <div class="text-red-500">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600">Error Rate</p>
+            <p class="text-2xl font-bold text-gray-900" id="error-rate">-</p>
+          </div>
+          <div class="text-orange-500">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600">Active Alerts</p>
+            <p class="text-2xl font-bold text-gray-900" id="active-alerts">-</p>
+          </div>
+          <div class="text-yellow-500">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600">Trend</p>
+            <p class="text-2xl font-bold text-gray-900" id="error-trend">-</p>
+          </div>
+          <div class="text-blue-500">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alerts Section -->
+    <div id="alerts-section" class="mb-8 hidden">
+      <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm text-red-700 font-medium">Active Alerts</p>
+            <div id="alerts-list" class="mt-2 text-sm text-red-600"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Filters</h2>
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Error Type</label>
+          <select id="filter-error-type" class="w-full border border-gray-300 rounded-md px-3 py-2">
+            <option value="">All Types</option>
+            <option value="ValidationError">Validation Error</option>
+            <option value="AuthenticationError">Authentication Error</option>
+            <option value="AuthorizationError">Authorization Error</option>
+            <option value="NotFoundError">Not Found Error</option>
+            <option value="ConflictError">Conflict Error</option>
+            <option value="PaymentError">Payment Error</option>
+            <option value="AppError">Application Error</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <select id="filter-status" class="w-full border border-gray-300 rounded-md px-3 py-2">
+            <option value="">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="resolved">Resolved</option>
+            <option value="ignored">Ignored</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Time Range</label>
+          <select id="filter-hours" class="w-full border border-gray-300 rounded-md px-3 py-2">
+            <option value="1">Last 1 hour</option>
+            <option value="6">Last 6 hours</option>
+            <option value="24" selected>Last 24 hours</option>
+            <option value="72">Last 3 days</option>
+            <option value="168">Last 7 days</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Limit</label>
+          <select id="filter-limit" class="w-full border border-gray-300 rounded-md px-3 py-2">
+            <option value="50">50</option>
+            <option value="100" selected>100</option>
+            <option value="250">250</option>
+            <option value="500">500</option>
+          </select>
+        </div>
+
+        <div class="flex items-end">
+          <button id="apply-filters" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">
+            Apply Filters
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts and Tables Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <!-- Error Rate Chart -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Error Rate Over Time</h2>
+        <div id="error-rate-chart" class="h-64"></div>
+      </div>
+
+      <!-- Error Type Breakdown -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Error Type Breakdown</h2>
+        <div id="error-type-chart" class="h-64"></div>
+      </div>
+    </div>
+
+    <!-- Recent Errors Table -->
+    <div class="bg-white rounded-lg shadow">
+      <div class="p-6 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-900">Recent Errors</h2>
+          <button id="export-errors" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition text-sm">
+            Export CSV
+          </button>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Endpoint</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="errors-table" class="bg-white divide-y divide-gray-200">
+            <tr>
+              <td colspan="7" class="px-6 py-4 text-center text-gray-500">Loading errors...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="pagination" class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          Showing <span id="showing-count">-</span> errors
+        </div>
+        <div class="flex gap-2">
+          <button id="prev-page" class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50" disabled>
+            Previous
+          </button>
+          <button id="next-page" class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50" disabled>
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Detail Modal -->
+  <div id="error-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-gray-900">Error Details</h3>
+          <button id="close-modal" class="text-gray-400 hover:text-gray-500">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div id="modal-content" class="p-6">
+        <!-- Error details will be loaded here -->
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script src="/scripts/error-monitoring.js"></script>
+
+<style>
+  /* Chart placeholder styles */
+  .chart-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    background-color: #f9fafb;
+    border: 2px dashed #d1d5db;
+    border-radius: 0.5rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+  }
+
+  /* Status badges */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    px-2 py-1 rounded-full text-xs font-medium;
+  }
+
+  .status-active {
+    background-color: #fee2e2;
+    color: #991b1b;
+  }
+
+  .status-resolved {
+    background-color: #d1fae5;
+    color: #065f46;
+  }
+
+  .status-ignored {
+    background-color: #f3f4f6;
+    color: #374151;
+  }
+</style>

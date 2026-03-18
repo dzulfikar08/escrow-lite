@@ -1,0 +1,430 @@
+---
+/**
+ * PayoutForm Component
+ *
+ * Form for requesting payouts with validation
+ */
+import { formatRupiah } from '@/lib/api-client';
+
+interface BankAccount {
+  id: string;
+  bank_code: string;
+  account_number: string;
+  account_name: string;
+  is_primary: boolean;
+}
+
+interface Props {
+  availableBalance: number;
+  bankAccounts: BankAccount[];
+}
+
+const { availableBalance, bankAccounts } = Astro.props;
+
+const MIN_PAYOUT_AMOUNT = 50000;
+const maxAmount = availableBalance;
+---
+
+<div class="payout-form-container">
+  <div class="form-header">
+    <h3>Formulir Pencairan Dana</h3>
+    <p class="form-subtitle">Tarik dana ke rekening bank Anda</p>
+  </div>
+
+  <form id="payoutForm" class="payout-form" data-available-balance={availableBalance}>
+    <div class="form-group">
+      <label for="amount">Jumlah Pencairan</label>
+      <div class="amount-input-wrapper">
+        <span class="currency-prefix">Rp</span>
+        <input
+          type="text"
+          id="amount"
+          name="amount"
+          inputmode="numeric"
+          placeholder="0"
+          min={MIN_PAYOUT_AMOUNT}
+          max={maxAmount}
+          required
+          class="amount-input"
+        />
+      </div>
+      <p class="input-hint">
+        Minimal: {formatRupiah(MIN_PAYOUT_AMOUNT)} |
+        Maksimal: {formatRupiah(maxAmount)}
+      </p>
+      <p class="available-balance">
+        Saldo tersedia: <strong>{formatRupiah(availableBalance)}</strong>
+      </p>
+    </div>
+
+    <div class="form-group">
+      <label for="bankAccount">Rekening Tujuan</label>
+      <select id="bankAccount" name="bankAccount" required class="bank-select">
+        <option value="">Pilih rekening bank</option>
+        {
+          bankAccounts.length > 0 ? (
+            bankAccounts.map((account) => (
+              <option value={account.id}>
+                {account.bank_code} - {account.account_number} ({account.account_name})
+                {account.is_primary ? ' [Utama]' : ''}
+              </option>
+            ))
+          ) : (
+            <option value="" disabled>
+              Tidak ada rekening bank terdaftar
+            </option>
+          )
+        }
+      </select>
+      <p class="input-hint">
+        Belum punya rekening? <a href="/dashboard/settings?tab=bank">Tambah rekening</a>
+      </p>
+    </div>
+
+    <div class="form-group">
+      <label for="notes">Catatan (Opsional)</label>
+      <textarea
+        id="notes"
+        name="notes"
+        rows="3"
+        placeholder="Tambahkan catatan untuk pencairan ini..."
+        class="notes-textarea"
+      ></textarea>
+    </div>
+
+    <div class="fee-info">
+      <p class="fee-text">
+        Biaya admin: <strong>Rp 2.500</strong> per pencairan
+      </p>
+      <p class="fee-text">
+        Anda akan menerima: <strong id="netAmount">Rp 0</strong>
+      </p>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-submit" disabled>
+        <span class="btn-text">Ajukan Pencairan</span>
+        <span class="btn-loader" style="display: none;">Memproses...</span>
+      </button>
+    </div>
+  </form>
+</div>
+
+<style>
+  .payout-form-container {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  .form-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-header h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 0.25rem;
+  }
+
+  .form-subtitle {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  .payout-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .amount-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .currency-prefix {
+    position: absolute;
+    left: 1rem;
+    color: #6b7280;
+    font-weight: 500;
+    z-index: 10;
+  }
+
+  .amount-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 3rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .amount-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .bank-select,
+  .notes-textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .bank-select:focus,
+  .notes-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .notes-textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  .input-hint {
+    font-size: 0.75rem;
+    color: #6b7280;
+  }
+
+  .input-hint a {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .input-hint a:hover {
+    text-decoration: underline;
+  }
+
+  .available-balance {
+    font-size: 0.875rem;
+    color: #059669;
+    margin-top: 0.25rem;
+  }
+
+  .available-balance strong {
+    font-weight: 600;
+  }
+
+  .fee-info {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .fee-text {
+    font-size: 0.875rem;
+    color: #374151;
+  }
+
+  .fee-text strong {
+    font-weight: 600;
+  }
+
+  .form-actions {
+    margin-top: 0.5rem;
+  }
+
+  .btn-submit {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .btn-submit:hover:not(:disabled) {
+    background: #2563eb;
+  }
+
+  .btn-submit:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+  }
+
+  .btn-loader {
+    display: inline-block;
+  }
+
+  @media (max-width: 768px) {
+    .payout-form-container {
+      padding: 1rem;
+    }
+  }
+</style>
+
+<script>
+  const MIN_PAYOUT_AMOUNT = 50000;
+  const FEE_AMOUNT = 2500;
+
+  // Format number to Indonesian locale
+  function formatNumber(num: number): string {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
+  // Parse formatted number back to integer
+  function parseFormattedNumber(str: string): number {
+    return parseInt(str.replace(/\./g, ''), 10) || 0;
+  }
+
+  // Get available balance from data attribute
+  function getAvailableBalance(): number {
+    const form = document.getElementById('payoutForm') as HTMLFormElement;
+    const balance = form?.dataset.availableBalance;
+    return balance ? parseInt(balance, 10) : 0;
+  }
+
+  // Initialize form validation and formatting
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('payoutForm') as HTMLFormElement;
+    const amountInput = document.getElementById('amount') as HTMLInputElement;
+    const bankSelect = document.getElementById('bankAccount') as HTMLSelectElement;
+    const netAmountDisplay = document.getElementById('netAmount');
+    const submitBtn = form?.querySelector('.btn-submit') as HTMLButtonElement;
+    const btnText = submitBtn?.querySelector('.btn-text');
+    const btnLoader = submitBtn?.querySelector('.btn-loader');
+
+    if (!form || !amountInput || !bankSelect || !netAmountDisplay || !submitBtn) return;
+
+    // Store available balance from data attribute
+    const availableBalance = parseInt(form.dataset.availableBalance || '0', 10);
+
+    // Format amount input as user types
+    amountInput.addEventListener('input', (e) => {
+      const value = parseFormattedNumber(amountInput.value);
+      if (value > 0) {
+        amountInput.value = formatNumber(value);
+      } else {
+        amountInput.value = '';
+      }
+
+      // Update net amount display
+      const netAmount = Math.max(0, value - FEE_AMOUNT);
+      netAmountDisplay.textContent = `Rp ${formatNumber(netAmount)}`;
+
+      validateForm();
+    });
+
+    // Validate form on bank select change
+    bankSelect.addEventListener('change', validateForm);
+
+    function validateForm() {
+      const amount = parseFormattedNumber(amountInput.value);
+      const bankAccount = bankSelect.value;
+
+      let isValid = true;
+
+      // Validate amount
+      if (amount < MIN_PAYOUT_AMOUNT) {
+        isValid = false;
+      }
+
+      if (amount > availableBalance) {
+        isValid = false;
+      }
+
+      // Validate bank account
+      if (!bankAccount) {
+        isValid = false;
+      }
+
+      submitBtn.disabled = !isValid;
+    }
+
+    // Handle form submission
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const amount = parseFormattedNumber(amountInput.value);
+      const bankAccount = bankSelect.value;
+      const notes = (document.getElementById('notes') as HTMLTextAreaElement).value;
+
+      // Double validation
+      if (amount < MIN_PAYOUT_AMOUNT) {
+        alert(`Minimal pencairan adalah Rp ${formatNumber(MIN_PAYOUT_AMOUNT)}`);
+        return;
+      }
+
+      if (amount > availableBalance) {
+        alert('Jumlah melebihi saldo tersedia');
+        return;
+      }
+
+      if (!bankAccount) {
+        alert('Silakan pilih rekening bank tujuan');
+        return;
+      }
+
+      // Disable button and show loader
+      submitBtn.disabled = true;
+      if (btnText) btnText.style.display = 'none';
+      if (btnLoader) btnLoader.style.display = 'inline';
+
+      try {
+        const response = await fetch('/api/v1/payouts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount,
+            bank_account_id: bankAccount,
+            notes: notes || undefined,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          alert('Permintaan pencairan berhasil dikirim!');
+          window.location.reload();
+        } else {
+          alert(result.error?.message || 'Gagal mengajukan pencairan');
+          submitBtn.disabled = false;
+          if (btnText) btnText.style.display = 'inline';
+          if (btnLoader) btnLoader.style.display = 'none';
+        }
+      } catch (error) {
+        alert('Terjadi kesalahan. Silakan coba lagi.');
+        submitBtn.disabled = false;
+        if (btnText) btnText.style.display = 'inline';
+        if (btnLoader) btnLoader.style.display = 'none';
+      }
+    });
+  });
+</script>

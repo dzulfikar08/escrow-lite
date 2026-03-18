@@ -1,16 +1,167 @@
 ---
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import PayoutForm from '@/components/dashboard/PayoutForm.astro';
+import PayoutHistory from '@/components/dashboard/PayoutHistory.astro';
+import { formatRupiah } from '@/lib/api-client';
+
+// Fetch balance, bank accounts, and payout data from API
+let balanceData = {
+  held_balance: 0,
+  available_balance: 0,
+  pending_payouts: 0,
+  total_paid_out: 0
+};
+
+let bankAccounts: any[] = [];
+let payoutHistory: any[] = [];
+
+try {
+  // Fetch balance data
+  const balanceResponse = await fetch(`${Astro.url.origin}/api/v1/seller/balance`, {
+    headers: {
+      'Cookie': Astro.request.headers.get('cookie') || ''
+    }
+  });
+
+  if (balanceResponse.ok) {
+    const balanceResult = await balanceResponse.json();
+    balanceData = balanceResult.data;
+  }
+
+  // Fetch bank accounts
+  const bankAccountsResponse = await fetch(`${Astro.url.origin}/api/v1/seller/bank-accounts`, {
+    headers: {
+      'Cookie': Astro.request.headers.get('cookie') || ''
+    }
+  });
+
+  if (bankAccountsResponse.ok) {
+    const bankAccountsResult = await bankAccountsResponse.json();
+    bankAccounts = bankAccountsResult.data;
+  }
+
+  // Fetch payout history
+  const payoutsResponse = await fetch(`${Astro.url.origin}/api/v1/seller/payouts`, {
+    headers: {
+      'Cookie': Astro.request.headers.get('cookie') || ''
+    }
+  });
+
+  if (payoutsResponse.ok) {
+    const payoutsResult = await payoutsResponse.json();
+    payoutHistory = payoutsResult.data;
+  }
+} catch (error) {
+  console.error('Failed to fetch data:', error);
+}
 ---
 
-<DashboardLayout title="Pencairan - Escrow Lite">
-  <div class="page-placeholder">
-    <div class="placeholder-content">
-      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-      </svg>
-      <h2>Pencairan Dana</h2>
-      <p>Halaman ini sedang dalam pengembangan.</p>
-      <a href="/dashboard" class="back-link">← Kembali ke Dashboard</a>
+<DashboardLayout title="Pencairan Dana - Escrow Lite">
+  <div class="payouts-page">
+    <div class="page-header">
+      <h1>Pencairan Dana</h1>
+      <p class="page-subtitle">Tarik dana Anda ke rekening bank</p>
+    </div>
+
+    <div class="payouts-content">
+      <div class="payout-form-section">
+        <div class="balance-info-card">
+          <h3>Saldo Tersedia</h3>
+          <p class="balance-amount">{formatRupiah(balanceData.available_balance)}</p>
+          <p class="balance-hint">Dana yang bisa ditarik saat ini</p>
+        </div>
+
+        <PayoutForm
+          availableBalance={balanceData.available_balance}
+          bankAccounts={bankAccounts}
+        />
+      </div>
+
+      <div class="payout-history-section">
+        <PayoutHistory payouts={payoutHistory} />
+      </div>
     </div>
   </div>
 </DashboardLayout>
+
+<style>
+  .payouts-page {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+  }
+
+  .page-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 0.5rem;
+  }
+
+  .page-subtitle {
+    font-size: 1rem;
+    color: #6b7280;
+  }
+
+  .payouts-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .payout-form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .balance-info-card {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    color: white;
+  }
+
+  .balance-info-card h3 {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    opacity: 0.9;
+  }
+
+  .balance-amount {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+  }
+
+  .balance-hint {
+    font-size: 0.75rem;
+    opacity: 0.8;
+  }
+
+  .payout-history-section {
+    position: sticky;
+    top: 2rem;
+  }
+
+  @media (max-width: 1024px) {
+    .payouts-content {
+      grid-template-columns: 1fr;
+    }
+
+    .payout-history-section {
+      position: static;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .page-header h1 {
+      font-size: 1.5rem;
+    }
+  }
+</style>

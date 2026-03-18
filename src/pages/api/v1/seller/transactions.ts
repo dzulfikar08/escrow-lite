@@ -15,14 +15,17 @@ export const prerender = false;
  *
  * Query Parameters:
  * - status: Optional filter by transaction status
+ * - search: Optional search by transaction ID or buyer email
+ * - page: Page number (default: 1)
  * - limit: Number of results per page (default: 50, max: 100)
- * - offset: Number of results to skip (default: 0)
  *
  * Response:
  * {
  *   "data": {
  *     "transactions": [...],
- *     "total": 100
+ *     "total": 100,
+ *     "page": 1,
+ *     "limit": 50
  *   },
  *   "meta": {
  *     "request_id": "uuid",
@@ -64,11 +67,12 @@ export const GET: APIRoute = async (context) => {
     // Parse query parameters
     const url = new URL(context.request.url);
     const status = url.searchParams.get('status') || undefined;
+    const search = url.searchParams.get('search') || undefined;
     const limitParam = url.searchParams.get('limit');
-    const offsetParam = url.searchParams.get('offset');
+    const pageParam = url.searchParams.get('page');
 
     let limit = 50;
-    let offset = 0;
+    let page = 1;
 
     if (limitParam) {
       const parsedLimit = parseInt(limitParam, 10);
@@ -77,12 +81,14 @@ export const GET: APIRoute = async (context) => {
       }
     }
 
-    if (offsetParam) {
-      const parsedOffset = parseInt(offsetParam, 10);
-      if (!isNaN(parsedOffset) && parsedOffset >= 0) {
-        offset = parsedOffset;
+    if (pageParam) {
+      const parsedPage = parseInt(pageParam, 10);
+      if (!isNaN(parsedPage) && parsedPage >= 1) {
+        page = parsedPage;
       }
     }
+
+    const offset = (page - 1) * limit;
 
     // Initialize services
     const ledger = new LedgerService(db);
@@ -91,13 +97,19 @@ export const GET: APIRoute = async (context) => {
     // Get transaction history
     const result = await balanceService.getTransactionHistory(sellerId, {
       status,
+      search,
       limit,
       offset,
     });
 
     return jsonResponse(
       {
-        data: result,
+        data: {
+          transactions: result.transactions,
+          total: result.total,
+          page,
+          limit,
+        },
         meta: {
           request_id: requestId,
           timestamp: new Date().toISOString(),

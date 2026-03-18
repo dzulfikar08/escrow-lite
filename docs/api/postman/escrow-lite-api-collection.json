@@ -1,0 +1,720 @@
+{
+  "info": {
+    "name": "Escrow Lite API",
+    "description": "Official Escrow Lite API collection for testing and integration",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Escrow Lite Support",
+      "email": "support@escrow-lite.id"
+    }
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.escrow-lite.id",
+      "type": "string"
+    },
+    {
+      "key": "session_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "transaction_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "dispute_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bank_account_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"seller@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"name\": \"John Doe\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "description": "Create a new seller account"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"seller@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Authenticate and receive session token\n\n**Post-response script:**\n```javascript\nconst cookies = response.headers.toArray().find(h => h[0].toLowerCase() === 'set-cookie');\nif (cookies) {\n  const sessionMatch = cookies[1].match(/session=([^;]+)/);\n  if (sessionMatch) {\n    pm.collectionVariables.set('session_token', sessionMatch[1]);\n  }\n}\n```"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const cookies = pm.response.headers.get('set-cookie');",
+                  "if (cookies) {",
+                  "  const sessionMatch = cookies.match(/session=([^;]+)/);",
+                  "  if (sessionMatch) {",
+                  "    pm.collectionVariables.set('session_token', sessionMatch[1]);",
+                  "    console.log('Session token saved:', sessionMatch[1]);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "logout"]
+            },
+            "description": "End current session"
+          },
+          "response": []
+        }
+      ],
+      "description": "User authentication and session management"
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Create Transaction",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"buyer_email\": \"buyer@example.com\",\n  \"buyer_phone\": \"+628123456789\",\n  \"amount\": 150000,\n  \"auto_release_days\": 3,\n  \"metadata\": {\n    \"order_id\": \"ORD-12345\",\n    \"items\": \"Bluetooth Headphones\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "transactions"]
+            },
+            "description": "Create new escrow transaction"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "  pm.collectionVariables.set('transaction_id', jsonData.data.id);",
+                  "  console.log('Transaction ID saved:', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Transaction",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/{{transaction_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "transactions", "{{transaction_id}}"]
+            },
+            "description": "Get transaction details by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "List Seller Transactions",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/seller/transactions?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "seller", "transactions"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "List seller's transactions with pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Mark as Shipped",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tracking_number\": \"JNE123456789\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/{{transaction_id}}/ship",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "transactions", "{{transaction_id}}", "ship"]
+            },
+            "description": "Mark transaction as shipped"
+          },
+          "response": []
+        },
+        {
+          "name": "Buyer Confirm Receipt",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/v1/transactions/{{transaction_id}}/confirm",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "transactions", "{{transaction_id}}", "confirm"]
+            },
+            "description": "Buyer confirms receipt, releasing funds"
+          },
+          "response": []
+        }
+      ],
+      "description": "Escrow transaction management"
+    },
+    {
+      "name": "Balance & Payouts",
+      "item": [
+        {
+          "name": "Get Balance",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/seller/balance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "seller", "balance"]
+            },
+            "description": "Get seller balance breakdown"
+          },
+          "response": []
+        },
+        {
+          "name": "Request Payout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 150000,\n  \"bank_account_id\": \"{{bank_account_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payouts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payouts"]
+            },
+            "description": "Request payout to bank account"
+          },
+          "response": []
+        },
+        {
+          "name": "List Payouts",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/payouts?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payouts"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "List seller payouts"
+          },
+          "response": []
+        }
+      ],
+      "description": "Balance checking and payout management"
+    },
+    {
+      "name": "Bank Accounts",
+      "item": [
+        {
+          "name": "List Bank Accounts",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/bank-accounts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bank-accounts"]
+            },
+            "description": "List seller's bank accounts"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Bank Account",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bank_name\": \"BCA\",\n  \"account_number\": \"1234567890\",\n  \"account_holder_name\": \"JOHN DOE\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/bank-accounts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bank-accounts"]
+            },
+            "description": "Add new bank account"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.id) {",
+                  "  pm.collectionVariables.set('bank_account_id', jsonData.data.id);",
+                  "  console.log('Bank account ID saved:', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Set Primary Account",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "url": {
+              "raw": "{{base_url}}/api/v1/bank-accounts/{{bank_account_id}}/primary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bank-accounts", "{{bank_account_id}}", "primary"]
+            },
+            "description": "Set bank account as primary"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Bank Account",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/v1/bank-accounts/{{bank_account_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bank-accounts", "{{bank_account_id}}"]
+            },
+            "description": "Delete bank account"
+          },
+          "response": []
+        }
+      ],
+      "description": "Bank account management"
+    },
+    {
+      "name": "Disputes",
+      "item": [
+        {
+          "name": "List Disputes",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/disputes?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "disputes"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "List disputes"
+          },
+          "response": []
+        },
+        {
+          "name": "Open Dispute",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_id\": \"{{transaction_id}}\",\n  \"reason\": \"Item not as described\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/disputes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "disputes"]
+            },
+            "description": "Open new dispute"
+          },
+          "response": []
+        },
+        {
+          "name": "Respond to Dispute",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"response\": \"Item shipped correctly, see tracking evidence\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/disputes/{{dispute_id}}/respond",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "disputes", "{{dispute_id}}", "respond"]
+            },
+            "description": "Respond to dispute"
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Evidence",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{session_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/path/to/evidence.jpg"
+                },
+                {
+                  "key": "description",
+                  "value": "Photo of item condition",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/disputes/{{dispute_id}}/evidence",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "disputes", "{{dispute_id}}", "evidence"]
+            },
+            "description": "Upload evidence for dispute"
+          },
+          "response": []
+        }
+      ],
+      "description": "Dispute management"
+    },
+    {
+      "name": "Monitoring",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Basic health check"
+          },
+          "response": []
+        },
+        {
+          "name": "Detailed Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/health/detailed",
+              "host": ["{{base_url}}"],
+              "path": ["health", "detailed"]
+            },
+            "description": "Detailed health check with component status"
+          },
+          "response": []
+        },
+        {
+          "name": "Platform Metrics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/health/metrics",
+              "host": ["{{base_url}}"],
+              "path": ["health", "metrics"]
+            },
+            "description": "Public platform metrics"
+          },
+          "response": []
+        },
+        {
+          "name": "Badge Stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/badge/seller_abc123/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "badge", "seller_abc123", "stats"]
+            },
+            "description": "Get seller badge statistics (public endpoint)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Health checks and monitoring (no auth required)"
+    }
+  ]
+}

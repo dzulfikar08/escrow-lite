@@ -24,6 +24,7 @@ import * as SellerQueries from '@/db/queries/sellers';
  */
 export interface TransactionHistoryFilters {
   status?: string;
+  search?: string;
   limit?: number;
   offset?: number;
 }
@@ -86,11 +87,11 @@ export class BalanceService {
   /**
    * Get transaction history with filters and pagination
    *
-   * Returns paginated list of transactions with optional status filter.
+   * Returns paginated list of transactions with optional status filter and search.
    * Transactions are ordered by creation date (newest first).
    *
    * @param sellerId - The seller ID
-   * @param filters - Optional filters (status, limit, offset)
+   * @param filters - Optional filters (status, search, limit, offset)
    * @returns Paginated transaction history
    * @throws NotFoundError if seller doesn't exist
    */
@@ -109,6 +110,12 @@ export class BalanceService {
     const limit = filters?.limit ?? 50;
     const offset = filters?.offset ?? 0;
     const status = filters?.status;
+    const search = filters?.search;
+
+    // Use search query if search term is provided
+    if (search && search.trim().length > 0) {
+      return this.searchTransactions(sellerId, search, status, limit, offset);
+    }
 
     // Build conditional SQL based on status filter
     const statusCondition = status ? 'AND status = ?' : '';
@@ -129,6 +136,56 @@ export class BalanceService {
     // Get total count for pagination
     const countStmt = this.db.prepare(countQuery);
     const countBindParams = status ? [sellerId, status] : [sellerId];
+    const countResult = await countStmt.bind(...countBindParams).first<{ count: number }>();
+
+    const transactions = txnResult.results.map(this.mapToTransaction);
+
+    return {
+      transactions,
+      total: countResult?.count ?? 0,
+    };
+  }
+
+  /**
+   * Search transactions by ID or buyer email
+   *
+   * @param sellerId - The seller ID
+   * @param searchTerm - Search term (transaction ID or buyer email)
+   * @param status - Optional status filter
+   * @param limit - Number of results
+   * @param offset - Number of results to skip
+   * @returns Paginated search results
+   */
+  private async searchTransactions(
+    sellerId: string,
+    searchTerm: string,
+    status: string | undefined,
+    limit: number,
+    offset: number
+  ): Promise<TransactionHistoryResult> {
+    const searchPattern = `%${searchTerm}%`;
+    const statusCondition = status ? 'AND status = ?' : '';
+    const transactionsQuery = SellerQueries.SEARCH_SELLER_TRANSACTIONS.replace(
+      "/*STATUS_CONDITIONAL*/",
+      statusCondition
+    );
+    const countQuery = SellerQueries.COUNT_SEARCH_RESULTS.replace(
+      "/*STATUS_CONDITIONAL*/",
+      statusCondition
+    );
+
+    // Get transactions with pagination
+    const txnStmt = this.db.prepare(transactionsQuery);
+    const txnBindParams = status
+      ? [sellerId, searchPattern, searchPattern, status, limit, offset]
+      : [sellerId, searchPattern, searchPattern, limit, offset];
+    const txnResult = await txnStmt.bind(...txnBindParams).all<any>();
+
+    // Get total count for pagination
+    const countStmt = this.db.prepare(countQuery);
+    const countBindParams = status
+      ? [sellerId, searchPattern, searchPattern, status]
+      : [sellerId, searchPattern, searchPattern];
     const countResult = await countStmt.bind(...countBindParams).first<{ count: number }>();
 
     const transactions = txnResult.results.map(this.mapToTransaction);

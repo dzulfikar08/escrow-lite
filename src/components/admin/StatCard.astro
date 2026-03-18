@@ -1,0 +1,309 @@
+---
+/**
+ * StatCard - Admin statistics display card
+ * Shows key metrics with icons and trend indicators
+ */
+
+interface Props {
+  title: string;
+  value: string | number;
+  description: string;
+  icon?: 'transactions' | 'volume' | 'disputes' | 'sellers' | 'payouts' | 'custom';
+  trend?: {
+    value: number;
+    isPositive: boolean;
+    label?: string;
+  };
+  color?: 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'gray';
+  href?: string;
+}
+
+const {
+  title,
+  value,
+  description,
+  icon = 'custom',
+  trend,
+  color = 'blue',
+  href,
+} = Astro.props;
+
+// Get icon SVG based on type
+const getIcon = () => {
+  const icons = {
+    transactions: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`,
+    volume: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>`,
+    disputes: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
+    sellers: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`,
+    payouts: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>`,
+    custom: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`,
+  };
+  return icons[icon];
+};
+
+// Get color classes
+const getColorClasses = () => {
+  const colors = {
+    blue: {
+      bg: 'bg-blue-50',
+      iconBg: 'bg-blue-100',
+      iconText: 'text-blue-600',
+      text: 'text-gray-600',
+      value: 'text-gray-900',
+    },
+    green: {
+      bg: 'bg-green-50',
+      iconBg: 'bg-green-100',
+      iconText: 'text-green-600',
+      text: 'text-gray-600',
+      value: 'text-gray-900',
+    },
+    yellow: {
+      bg: 'bg-yellow-50',
+      iconBg: 'bg-yellow-100',
+      iconText: 'text-yellow-600',
+      text: 'text-gray-600',
+      value: 'text-gray-900',
+    },
+    red: {
+      bg: 'bg-red-50',
+      iconBg: 'bg-red-100',
+      iconText: 'text-red-600',
+      text: 'text-gray-600',
+      value: 'text-gray-900',
+    },
+    purple: {
+      bg: 'bg-purple-50',
+      iconBg: 'bg-purple-100',
+      iconText: 'text-purple-600',
+      text: 'text-gray-600',
+      value: 'text-gray-900',
+    },
+    gray: {
+      bg: 'bg-gray-50',
+      iconBg: 'bg-gray-100',
+      iconText: 'text-gray-600',
+      text: 'text-gray-600',
+      value: 'text-gray-900',
+    },
+  };
+  return colors[color];
+};
+
+const colorClasses = getColorClasses();
+const CardElement = href ? 'a' : 'div';
+---
+
+<CardElement class:list={[
+  'stat-card',
+  colorClasses.bg,
+  { 'stat-card--link': href }
+]} href={href}>
+  <div class="stat-content">
+    <div class="stat-header">
+      <p class="stat-title">{title}</p>
+      {trend && (
+        <div class={`stat-trend ${trend.isPositive ? 'stat-trend--positive' : 'stat-trend--negative'}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            {trend.isPositive
+              ? '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline>'
+              : '<polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline><polyline points="17 18 23 18 23 12"></polyline>'
+            }
+          </svg>
+          <span>{trend.label || `${trend.isPositive ? '+' : ''}${trend.value}%`}</span>
+        </div>
+      )}
+    </div>
+
+    <p class={`stat-value ${colorClasses.value}`}>{value}</p>
+    <p class={`stat-description ${colorClasses.text}`}>{description}</p>
+  </div>
+
+  <div class:list={['stat-icon', colorClasses.iconBg, colorClasses.iconText]}>
+    <div set:html={getIcon()} />
+  </div>
+</CardElement>
+
+<style>
+  .stat-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.5rem;
+    background-color: white;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+  }
+
+  .stat-card--link {
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .stat-card--link:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+  }
+
+  .stat-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .stat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0.25rem 0;
+    line-height: 1.2;
+    word-break: break-word;
+  }
+
+  .stat-description {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  .stat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .stat-icon :global(svg) {
+    width: 28px;
+    height: 28px;
+  }
+
+  .stat-trend {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+  }
+
+  .stat-trend--positive {
+    background-color: #d1fae5;
+    color: #059669;
+  }
+
+  .stat-trend--negative {
+    background-color: #fee2e2;
+    color: #dc2626;
+  }
+
+  /* Color variants using Tailwind classes */
+  .bg-blue-50 {
+    background-color: #eff6ff;
+  }
+  .bg-blue-100 {
+    background-color: #dbeafe;
+  }
+  .text-blue-600 {
+    color: #2563eb;
+  }
+
+  .bg-green-50 {
+    background-color: #f0fdf4;
+  }
+  .bg-green-100 {
+    background-color: #dcfce7;
+  }
+  .text-green-600 {
+    color: #16a34a;
+  }
+
+  .bg-yellow-50 {
+    background-color: #fefce8;
+  }
+  .bg-yellow-100 {
+    background-color: #fef9c3;
+  }
+  .text-yellow-600 {
+    color: #ca8a04;
+  }
+
+  .bg-red-50 {
+    background-color: #fef2f2;
+  }
+  .bg-red-100 {
+    background-color: #fee2e2;
+  }
+  .text-red-600 {
+    color: #dc2626;
+  }
+
+  .bg-purple-50 {
+    background-color: #faf5ff;
+  }
+  .bg-purple-100 {
+    background-color: #f3e8ff;
+  }
+  .text-purple-600 {
+    color: #9333ea;
+  }
+
+  .bg-gray-50 {
+    background-color: #f9fafb;
+  }
+  .bg-gray-100 {
+    background-color: #f3f4f6;
+  }
+  .text-gray-600 {
+    color: #4b5563;
+  }
+  .text-gray-900 {
+    color: #111827;
+  }
+
+  /* Mobile responsive */
+  @media (max-width: 640px) {
+    .stat-card {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      align-self: flex-end;
+    }
+
+    .stat-icon :global(svg) {
+      width: 24px;
+      height: 24px;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+    }
+  }
+</style>

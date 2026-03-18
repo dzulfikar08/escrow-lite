@@ -8,8 +8,8 @@ export default defineConfig({
     },
   },
   test: {
-    // Use node environment for unit tests (no D1 needed)
-    environment: 'node',
+    // Use happy-dom for all tests that need DOM
+    environment: 'happy-dom',
     poolOptions: {
       threads: {
         singleThread: true,

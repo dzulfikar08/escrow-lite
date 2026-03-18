@@ -21,7 +21,10 @@ bucket_name = "escrow-lite-dev-evidence"
 [env.development.vars]
 ENVIRONMENT = "development"
 
-# Cron triggers for auto-release
+# Cron triggers for scheduled jobs
+# Runs every 5 minutes to process:
+# - Auto-release of timed-out transactions
+# - Pending payout processing
 [triggers]
 crons = ["*/5 * * * *"]
 

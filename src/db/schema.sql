@@ -236,6 +236,30 @@ CREATE TABLE admin_users (
 );
 
 -- =====================================================
+-- ERROR LOGS
+-- =====================================================
+
+CREATE TABLE error_logs (
+    id TEXT PRIMARY KEY,
+    error_type TEXT NOT NULL, -- ValidationError, AuthenticationError, etc.
+    error_code TEXT NOT NULL, -- VALIDATION_ERROR, AUTHENTICATION_ERROR, etc.
+    message TEXT NOT NULL,
+    stack_trace TEXT,
+    request_id TEXT,
+    user_id TEXT,
+    endpoint TEXT,
+    method TEXT,
+    user_agent TEXT,
+    ip_address TEXT,
+    status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'resolved', 'ignored')),
+    resolved_at TEXT,
+    resolved_by TEXT, -- admin_id
+    resolution_note TEXT,
+    metadata TEXT, -- JSON string for additional context
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- =====================================================
 -- AUDIT LOG
 -- =====================================================
 
@@ -330,6 +354,19 @@ CREATE INDEX idx_audit_log_actor ON audit_log(actor_type, actor_id);
 CREATE INDEX idx_audit_log_target ON audit_log(target_type, target_id);
 CREATE INDEX idx_audit_log_created_at ON audit_log(created_at);
 CREATE INDEX idx_audit_log_action ON audit_log(action);
+
+-- Error Logs
+CREATE INDEX idx_error_logs_error_type ON error_logs(error_type);
+CREATE INDEX idx_error_logs_error_code ON error_logs(error_code);
+CREATE INDEX idx_error_logs_status ON error_logs(status);
+CREATE INDEX idx_error_logs_created_at ON error_logs(created_at);
+CREATE INDEX idx_error_logs_request_id ON error_logs(request_id);
+CREATE INDEX idx_error_logs_user_id ON error_logs(user_id);
+
+-- Composite indexes for error_logs (optimized for common queries)
+CREATE INDEX idx_error_logs_status_created_at ON error_logs(status, created_at DESC);
+CREATE INDEX idx_error_logs_error_type_created_at ON error_logs(error_type, created_at DESC);
+CREATE INDEX idx_error_logs_user_id_created_at ON error_logs(user_id, created_at DESC);
 
 -- =====================================================
 -- TRIGGERS

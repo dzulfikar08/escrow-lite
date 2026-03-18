@@ -1,0 +1,479 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import StatCard from '@/components/admin/StatCard.astro';
+
+// Helper function to format currency in Indonesian Rupiah
+function formatRupiah(amount: number): string {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+// Helper function to format number with thousand separator
+function formatNumber(num: number): string {
+  return new Intl.NumberFormat('id-ID').format(num);
+}
+
+// Mock statistics data - will be replaced with real database queries
+const mockStats = {
+  totalTransactions: 1247,
+  totalHeldVolume: 2845000000, // Rp 2.845M
+  pendingDisputes: 23,
+  activeSellers: 156,
+  pendingPayouts: 45,
+  totalReleasedVolume: 15780000000, // Rp 15.78B
+};
+
+// Calculate trends (mock data - will come from database)
+const trends = {
+  transactions: { value: 12, isPositive: true, label: 'vs last month' },
+  volume: { value: 8, isPositive: true, label: 'vs last month' },
+  disputes: { value: 3, isPositive: false, label: 'vs last month' },
+  sellers: { value: 15, isPositive: true, label: 'new this month' },
+};
+
+// Recent activity mock data
+const recentActivity = [
+  {
+    id: 1,
+    type: 'transaction',
+    message: 'New transaction TXN-001234 created',
+    timestamp: '2 minutes ago',
+    severity: 'info',
+  },
+  {
+    id: 2,
+    type: 'dispute',
+    message: 'Dispute opened for transaction TXN-001198',
+    timestamp: '15 minutes ago',
+    severity: 'warning',
+  },
+  {
+    id: 3,
+    type: 'payout',
+    message: 'Payout of Rp 5,000,000 requested by seller SELL-001',
+    timestamp: '1 hour ago',
+    severity: 'info',
+  },
+  {
+    id: 4,
+    type: 'release',
+    message: 'Transaction TXN-001185 auto-released (timeout)',
+    timestamp: '2 hours ago',
+    severity: 'success',
+  },
+  {
+    id: 5,
+    type: 'seller',
+    message: 'New seller registration: PT Toko Maju Jaya',
+    timestamp: '3 hours ago',
+    severity: 'info',
+  },
+];
+---
+
+<AdminLayout title="Admin Dashboard - Escrow Lite">
+  <div class="admin-dashboard">
+    <div class="dashboard-header">
+      <h1>Dashboard Overview</h1>
+      <p class="subtitle">Welcome to the admin panel. Here's what's happening today.</p>
+    </div>
+
+    <!-- Statistics Grid -->
+    <div class="stats-grid">
+      <StatCard
+        title="Total Transactions"
+        value={formatNumber(mockStats.totalTransactions)}
+        description="All time transactions"
+        icon="transactions"
+        color="blue"
+        trend={trends.transactions}
+        href="/admin/transactions"
+      />
+
+      <StatCard
+        title="Total Held Volume"
+        value={formatRupiah(mockStats.totalHeldVolume)}
+        description="Currently in escrow"
+        icon="volume"
+        color="yellow"
+        trend={trends.volume}
+      />
+
+      <StatCard
+        title="Pending Disputes"
+        value={formatNumber(mockStats.pendingDisputes)}
+        description="Require attention"
+        icon="disputes"
+        color="red"
+        trend={trends.disputes}
+        href="/admin/disputes"
+      />
+
+      <StatCard
+        title="Active Sellers"
+        value={formatNumber(mockStats.activeSellers)}
+        description="Registered and active"
+        icon="sellers"
+        color="green"
+        trend={trends.sellers}
+        href="/admin/sellers"
+      />
+
+      <StatCard
+        title="Pending Payouts"
+        value={formatNumber(mockStats.pendingPayouts)}
+        description="Awaiting processing"
+        icon="payouts"
+        color="purple"
+        href="/admin/payouts"
+      />
+
+      <StatCard
+        title="Total Released"
+        value={formatRupiah(mockStats.totalReleasedVolume)}
+        description="Successfully released to sellers"
+        icon="volume"
+        color="green"
+      />
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section-card">
+      <h2 class="section-title">Quick Actions</h2>
+      <div class="quick-actions">
+        <a href="/admin/transactions/new" class="action-card">
+          <div class="action-icon action-icon--blue">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </div>
+          <div class="action-content">
+            <h3>Create Transaction</h3>
+            <p>Manually create a new escrow transaction</p>
+          </div>
+        </a>
+
+        <a href="/admin/disputes?status=open" class="action-card">
+          <div class="action-icon action-icon--yellow">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <div class="action-content">
+            <h3>Review Disputes</h3>
+            <p>Check open disputes requiring action</p>
+          </div>
+        </a>
+
+        <a href="/admin/payouts/approve" class="action-card">
+          <div class="action-icon action-icon--green">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="action-content">
+            <h3>Approve Payouts</h3>
+            <p>Review and process pending payouts</p>
+          </div>
+        </a>
+
+        <a href="/admin/sellers/verify" class="action-card">
+          <div class="action-icon action-icon--purple">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <div class="action-content">
+            <h3>Verify Sellers</h3>
+            <p>Review pending KYC verifications</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="section-card">
+      <div class="section-header">
+        <h2 class="section-title">Recent Activity</h2>
+        <a href="/admin/audit" class="view-all-link">View Audit Log →</a>
+      </div>
+
+      <div class="activity-list">
+        {recentActivity.map((activity) => (
+          <div class={`activity-item activity-item--${activity.severity}`}>
+            <div class="activity-icon">
+              {activity.type === 'transaction' && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+              )}
+              {activity.type === 'dispute' && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                </svg>
+              )}
+              {activity.type === 'payout' && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                  <line x1="1" y1="10" x2="23" y2="10"></line>
+                </svg>
+              )}
+              {activity.type === 'release' && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              )}
+              {activity.type === 'seller' && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                </svg>
+              )}
+            </div>
+            <div class="activity-content">
+              <p class="activity-message">{activity.message}</p>
+              <p class="activity-timestamp">{activity.timestamp}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<style>
+  .admin-dashboard {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .dashboard-header {
+    margin-bottom: 2rem;
+  }
+
+  .dashboard-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  /* Stats Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  /* Section Card */
+  .section-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+  }
+
+  .view-all-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .view-all-link:hover {
+    color: #1d4ed8;
+  }
+
+  /* Quick Actions */
+  .quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+
+  .action-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .action-card:hover {
+    background-color: white;
+    border-color: #2563eb;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .action-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .action-icon--blue {
+    background-color: #dbeafe;
+    color: #2563eb;
+  }
+
+  .action-icon--yellow {
+    background-color: #fef3c7;
+    color: #d97706;
+  }
+
+  .action-icon--green {
+    background-color: #d1fae5;
+    color: #059669;
+  }
+
+  .action-icon--purple {
+    background-color: #f3e8ff;
+    color: #9333ea;
+  }
+
+  .action-content h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .action-content p {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  /* Activity List */
+  .activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #f9fafb;
+    border-radius: 0.5rem;
+    border-left: 4px solid transparent;
+  }
+
+  .activity-item--info {
+    border-left-color: #3b82f6;
+  }
+
+  .activity-item--warning {
+    border-left-color: #f59e0b;
+    background-color: #fffbeb;
+  }
+
+  .activity-item--success {
+    border-left-color: #10b981;
+    background-color: #f0fdf4;
+  }
+
+  .activity-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background-color: white;
+    border-radius: 50%;
+    flex-shrink: 0;
+    color: #6b7280;
+  }
+
+  .activity-item--warning .activity-icon {
+    color: #f59e0b;
+  }
+
+  .activity-item--success .activity-icon {
+    color: #10b981;
+  }
+
+  .activity-content {
+    flex: 1;
+  }
+
+  .activity-message {
+    font-size: 0.9375rem;
+    color: #111827;
+    margin: 0 0 0.25rem 0;
+    font-weight: 500;
+  }
+
+  .activity-timestamp {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  /* Mobile responsive */
+  @media (max-width: 768px) {
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .quick-actions {
+      grid-template-columns: 1fr;
+    }
+
+    .dashboard-header h1 {
+      font-size: 1.5rem;
+    }
+
+    .section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+  }
+</style>

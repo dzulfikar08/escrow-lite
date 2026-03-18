@@ -1,0 +1,64 @@
+---
+/**
+ * Badge Widget JavaScript Endpoint
+ *
+ * Serves the JavaScript widget for embedding the trust badge
+ * Route: /badge/[seller_id]/widget.js
+ *
+ * This endpoint returns a self-contained JavaScript file that can be
+ * embedded on any website using a simple <script> tag.
+ *
+ * DESIGN NOTE: The widget uses inline minified JavaScript rather than
+ * importing api-client.ts and renderer.ts modules because:
+ * 1. The widget must be self-contained with no external dependencies
+ * 2. It needs to work on any website via a simple <script> tag
+ * 3. The code is minified to keep file size under 5KB
+ * 4. Bundling TypeScript modules for Astro server endpoints is complex
+ *
+ * The api-client.ts and renderer.ts modules are kept for:
+ * - Documentation and reference
+ * - Testing purposes (api-client.test.ts, renderer.test.ts)
+ * - Potential future use in other contexts (e.g., React components)
+ *
+ * Size: 4.46KB unminified (~1.6KB gzipped)
+ */
+const sellerId = Astro.params.seller_id as string;
+const origin = Astro.url.origin;
+
+// Generate the JavaScript widget code (minified)
+const widgetCode = generateWidgetScript(origin, sellerId);
+
+// Return JavaScript file with proper headers
+return new Response(widgetCode, {
+  status: 200,
+  headers: {
+    'Content-Type': 'application/javascript; charset=utf-8',
+    'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+    'Access-Control-Allow-Origin': '*', // CORS for cross-origin requests
+  },
+});
+
+/**
+ * Generate the widget script code (minified)
+ * Uses a compact inline script that imports the actual modules
+ */
+function generateWidgetScript(baseUrl: string, sellerId: string): string {
+  // Minified inline widget - compressed for size (<5KB)
+  return `(function(){'use strict';
+const C={sid:'${sellerId}',b:'${baseUrl}'};
+function i(){const s=S();if(!s)return;const c=P(s);
+if(!c)return;E();L(c);setInterval(()=>L(c),60000);}
+function S(){const d=document.querySelectorAll('script[src*="widget.js"]');
+for(let i=0;i<d.length;i++)if(d[i].src.includes('${sellerId}'))return d[i];return null;}
+function P(s){return{sid:C.sid,z:s.getAttribute('data-size')||'m',th:s.getAttribute('data-theme')||'l',cl:s.getAttribute('data-color')||'b',r:s.getAttribute('data-show-rating')!=='false',st:s.getAttribute('data-show-stats')!=='false',p:s.getAttribute('data-position')||'a'};}
+function E(){if(document.getElementById('elb-s'))return;
+const s=document.createElement('style');s.id='elb-s';s.textContent=M();document.head.appendChild(s);}
+async function L(c){try{const x=await F(c.sid);if(!x)return;const n=A(c);if(!n)return;R(n,c,x);}catch(e){}}
+async function F(id){try{const r=await fetch(C.b+'/api/badge/'+id+'/stats',{method:'GET',headers:{'Accept':'application/json'},mode:'cors',cache:'no-store'});if(!r.ok)throw new Error(r.status);return await r.json();}catch(e){if(e.message&&e.message.includes('Failed to fetch'))throw new Error('Network error');throw e;}}
+function A(c){let el=null;if(c.p==='a')el=document.querySelector('footer')||document.querySelector('.footer')||document.querySelector('[role="contentinfo"]');if(!el)el=document.body;el.className='elb-c elb-p-'+c.p;return el;}
+function R(n,c,x){const o=document.getElementById('elb-'+c.sid);if(o)o.remove();const b=B(c,x);n.appendChild(b);}
+function B(c,x){const d=document.createElement('div');d.id='elb-'+c.sid;d.className='elb elb-'+c.th+' elb-'+c.cl+' elb-'+c.z;const w=c.z==='s'?{w:'150px',h:'60px'}:c.z==='l'?{w:'250px',h:'100px'}:{w:'200px',h:'80px'};d.style.width=w.w;d.style.height=w.h;d.style.cursor='pointer';d.addEventListener('click',()=>window.open(C.b+'/badge/'+c.sid+'/verify','_blank'));const h=H(c,x);d.appendChild(h);if(c.st){const s=Ss(c,x);d.appendChild(s);}return d;}
+function H(c,x){const h=document.createElement('div');h.className='elh';const l=document.createElement('div');l.className='ell';const i=document.createElementNS('http://www.w3.org/2000/svg','svg');i.setAttribute('width','16');i.setAttribute('height','16');i.setAttribute('viewBox','0 0 24 24');i.setAttribute('fill','none');i.setAttribute('stroke','currentColor');i.setAttribute('stroke-width','2');const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d','M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z');i.appendChild(p);l.appendChild(i);const t=document.createElement('span');t.className='elt';t.textContent='Protected by Escrow Lite';l.appendChild(t);h.appendChild(l);if(c.r){const v=document.createElement('div');v.className='elv';if(x.seller.kycVerified){const ck=document.createElementNS('http://www.w3.org/2000/svg','svg');ck.setAttribute('width','14');ck.setAttribute('height','14');ck.setAttribute('viewBox','0 0 24 24');ck.setAttribute('fill','none');ck.setAttribute('stroke','currentColor');ck.setAttribute('stroke-width','2');ck.className='elck';const c1=document.createElementNS('http://www.w3.org/2000/svg','circle');c1.setAttribute('cx','12');c1.setAttribute('cy','12');c1.setAttribute('r','10');ck.appendChild(c1);const c2=document.createElementNS('http://www.w3.org/2000/svg','path');c2.setAttribute('d','M22 11.08V12a10 10 0 1 1-5.93-9.14');ck.appendChild(c2);const c3=document.createElementNS('http://www.w3.org/2000/svg','polyline');c3.setAttribute('points','22 4 12 14.01 9 11.01');ck.appendChild(c3);v.appendChild(ck);}const vt=document.createElement('span');vt.className='evt';const k=x.seller.kycTier,kv=x.seller.kycVerified;vt.textContent=kv&&k==='f'?'Verified Seller':kv&&k==='b'?'Basic Verified':'Seller';v.appendChild(vt);h.appendChild(v);}return h;}
+function Ss(c,x){const s=document.createElement('div');s.className='els';const n=document.createElement('div');n.className='eli';const nl=document.createElement('span');nl.className='elln';nl.textContent='Transactions';n.appendChild(nl);const nv=document.createElement('span');nv.className='elv';nv.textContent=new Intl.NumberFormat('id-ID').format(x.stats.totalTransactions);n.appendChild(nv);s.appendChild(n);const r=document.createElement('div');r.className='eli';const rl=document.createElement('span');rl.className='elln';rl.textContent='Success Rate';r.appendChild(rl);const rv=document.createElement('span');rv.className='elv';const rc=x.stats.successRate;rv.className+=rc>=95?' esg':rc>=85?' esb':rc>=70?' esy':' esr';rv.textContent=rc+'%';r.appendChild(rv);s.appendChild(r);return s;}
+function M(){return\`.elb{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;border-radius:8px;border:1px solid;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;transition:all .2s ease;text-decoration:none;cursor:pointer}.elb:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.15)}.elb.l{background:#fff;border-color:#e5e7eb}.elb.l.elb.b{border-color:#3b82f6}.elb.l.elb.g{border-color:#10b981}.elb.l.elb.n{border-color:#9ca3af}.elb.d{background:#1f2937;border-color:#374151}.elb.d.elb.b{border-color:#3b82f6}.elb.d.elb.g{border-color:#10b981}.elb.d.elb.n{border-color:#6b7280}.elh{display:flex;align-items:center;justify-content:space-between;gap:.5rem}.ell{display:flex;align-items:center;gap:.375rem}.elb.l .ell{color:#2563eb}.elb.l.elb.g .ell{color:#059669}.elb.l.elb.n .ell{color:#4b5563}.elb.d .ell{color:#60a5fa}.elt{font-weight:600;font-size:.75rem;white-space:nowrap}.elv{display:flex;align-items:center;gap:.25rem}.elck{color:#10b981;flex-shrink:0}.evt{font-size:.65rem;font-weight:500;white-space:nowrap}.elb.l .evt{color:#6b7280}.elb.d .evt{color:#d1d5db}.els{display:flex;gap:.75rem;margin-top:.5rem}.eli{display:flex;flex-direction:column;gap:.125rem}.elln{font-size:.625rem;text-transform:uppercase;letter-spacing:.025em}.elb.l .elln{color:#6b7280}.elb.d .elln{color:#9ca3af}.eli .elv{font-weight:700;font-size:.875rem;line-height:1}.elb.l .eli .elv{color:#111827}.elb.d .eli .elv{color:#f3f4f6}.esg{color:#10b981!important}.esb{color:#3b82f6!important}.esy{color:#f59e0b!important}.esr{color:#9ca3af!important}.elb.s{padding:.5rem}.elb.s .elt{font-size:.625rem}.elb.s .evt{font-size:.5625rem}.elb.s .elln{font-size:.5625rem}.elb.s .eli .elv{font-size:.75rem}.elb.m{padding:.75rem}.elb.lg{padding:1rem}.elb.lg .elt{font-size:.875rem}.elb.lg .evt{font-size:.75rem}.elb.lg .elln{font-size:.6875rem}.elb.lg .eli .elv{font-size:1rem}.elb-c{position:fixed;bottom:20px;z-index:9999}.elb-p-a{left:auto;right:auto}.elb-p-l{left:20px}.elb-p-c{left:50%;transform:translateX(-50%)}.elb-p-c:hover{transform:translateX(-50%) translateY(-2px)}.elb-p-r{right:20px}\`;}
+document.readyState==='loading'?document.addEventListener('DOMContentLoaded',i):i();})();`;

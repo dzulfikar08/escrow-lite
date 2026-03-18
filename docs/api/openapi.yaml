@@ -1,0 +1,1255 @@
+openapi: 3.0.3
+info:
+  title: Escrow Lite API
+  description: |
+    Escrow Lite API provides secure escrow transaction services for Indonesian independent sellers.
+
+    ## Authentication
+
+    Most endpoints require Bearer token authentication obtained through login:
+
+    ```http
+    Authorization: Bearer YOUR_TOKEN_HERE
+    ```
+
+    ## Base URL
+
+    Production: `https://api.escrow-lite.id`
+    Development: `http://localhost:8788`
+
+    ## Rate Limiting
+
+    - Standard: 100 requests per minute
+    - Webhooks: 1000 requests per minute
+  version: 1.0.0
+  contact:
+    name: Escrow Lite Support
+    email: support@escrow-lite.id
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.escrow-lite.id
+    description: Production server
+  - url: http://localhost:8788
+    description: Development server
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Transactions
+    description: Escrow transaction management
+  - name: Payouts
+    description: Seller payout management
+  - name: Bank Accounts
+    description: Bank account management
+  - name: Disputes
+    description: Transaction dispute management
+  - name: Webhooks
+    description: Payment gateway webhooks
+  - name: Monitoring
+    description: Health checks and metrics (public)
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register new seller
+      description: Create a new seller account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - name
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: seller@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: SecurePass123!
+                name:
+                  type: string
+                  example: John Doe
+      responses:
+        '201':
+          description: User created successfully
+          headers:
+            Set-Cookie:
+              description: Session cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            example: user_123abc
+                          email:
+                            type: string
+                            example: seller@example.com
+                          name:
+                            type: string
+                            example: John Doe
+                          kyc_tier:
+                            type: string
+                            enum: [none, basic, full]
+                            example: none
+                          created_at:
+                            type: string
+                            format: date-time
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login seller
+      description: Authenticate with email and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              description: Session cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout seller
+      description: End the current session
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /api/v1/transactions:
+    post:
+      tags:
+        - Transactions
+      summary: Create transaction
+      description: Create a new escrow transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - buyer_email
+                - buyer_phone
+                - amount
+                - metadata
+              properties:
+                buyer_email:
+                  type: string
+                  format: email
+                buyer_phone:
+                  type: string
+                  example: "+628123456789"
+                amount:
+                  type: number
+                  format: float
+                  example: 150000
+                  description: Amount in Indonesian Rupiah (IDR)
+                auto_release_days:
+                  type: integer
+                  minimum: 1
+                  maximum: 30
+                  default: 3
+                  description: Auto-release days after shipping
+                metadata:
+                  type: object
+                  description: Additional transaction data
+                  additionalProperties: true
+      responses:
+        '201':
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Transaction'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+
+  /api/v1/transactions/{id}:
+    get:
+      tags:
+        - Transactions
+      summary: Get transaction by ID
+      parameters:
+        - $ref: '#/components/parameters/TransactionId'
+      responses:
+        '200':
+          description: Transaction details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Transaction'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+
+  /api/v1/transactions/{id}/ship:
+    post:
+      tags:
+        - Transactions
+      summary: Mark transaction as shipped
+      parameters:
+        - $ref: '#/components/parameters/TransactionId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tracking_number:
+                  type: string
+                  example: JNE123456789
+      responses:
+        '200':
+          description: Transaction marked as shipped
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Transaction'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /api/v1/transactions/{id}/confirm:
+    post:
+      tags:
+        - Transactions
+      summary: Buyer confirms receipt
+      description: Buyer confirms they received the goods, releasing funds
+      parameters:
+        - $ref: '#/components/parameters/TransactionId'
+      responses:
+        '200':
+          description: Transaction confirmed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Transaction'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /api/v1/seller/transactions:
+    get:
+      tags:
+        - Transactions
+      summary: List seller transactions
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Status'
+        - $ref: '#/components/parameters/Search'
+      responses:
+        '200':
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          transactions:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Transaction'
+                          total:
+                            type: integer
+                            example: 42
+                          page:
+                            type: integer
+                            example: 1
+                          limit:
+                            type: integer
+                            example: 20
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+
+  /api/v1/seller/balance:
+    get:
+      tags:
+        - Payouts
+      summary: Get seller balance
+      description: Retrieve current seller balance breakdown
+      responses:
+        '200':
+          description: Balance details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          held:
+                            type: number
+                            description: Amount held in escrow
+                            example: 4500000
+                          available:
+                            type: number
+                            description: Amount available for payout
+                            example: 12000000
+                          pending_payouts:
+                            type: number
+                            description: Amount in pending payouts
+                            example: 2500000
+                          total_paid_out:
+                            type: number
+                            description: Total amount paid out to date
+                            example: 85000000
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+
+  /api/v1/payouts:
+    post:
+      tags:
+        - Payouts
+      summary: Request payout
+      description: Request payout to bank account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - bank_account_id
+              properties:
+                amount:
+                  type: number
+                  format: float
+                  minimum: 50000
+                  description: Amount to payout (min: Rp 50,000)
+                  example: 1500000
+                bank_account_id:
+                  type: string
+                  description: Bank account ID to payout to
+                  example: ba_123abc
+      responses:
+        '201':
+          description: Payout requested
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Payout'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+
+    get:
+      tags:
+        - Payouts
+      summary: List seller payouts
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/PayoutStatus'
+      responses:
+        '200':
+          description: List of payouts
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          payouts:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Payout'
+                          total:
+                            type: integer
+                          page:
+                            type: integer
+                          limit:
+                            type: integer
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+
+  /api/v1/bank-accounts:
+    get:
+      tags:
+        - Bank Accounts
+      summary: List seller bank accounts
+      responses:
+        '200':
+          description: List of bank accounts
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/BankAccount'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+
+    post:
+      tags:
+        - Bank Accounts
+      summary: Add bank account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - bank_name
+                - account_number
+                - account_holder_name
+              properties:
+                bank_name:
+                  type: string
+                  enum: [BCA, BNI, BRI, MANDIRI, CIMB, DANAMON, PERMATA, BTPN, JENIUS]
+                  example: BCA
+                account_number:
+                  type: string
+                  example: "1234567890"
+                account_holder_name:
+                  type: string
+                  example: "JOHN DOE"
+      responses:
+        '201':
+          description: Bank account added
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BankAccount'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+
+  /api/v1/bank-accounts/{id}/primary:
+    put:
+      tags:
+        - Bank Accounts
+      summary: Set primary bank account
+      parameters:
+        - $ref: '#/components/parameters/BankAccountId'
+      responses:
+        '200':
+          description: Bank account set as primary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+
+  /api/v1/bank-accounts/{id}:
+    delete:
+      tags:
+        - Bank Accounts
+      summary: Delete bank account
+      parameters:
+        - $ref: '#/components/parameters/BankAccountId'
+      responses:
+        '200':
+          description: Bank account deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+
+  /api/v1/disputes:
+    get:
+      tags:
+        - Disputes
+      summary: List disputes
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Status'
+      responses:
+        '200':
+          description: List of disputes
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Dispute'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+
+    post:
+      tags:
+        - Disputes
+      summary: Open dispute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - transaction_id
+                - reason
+              properties:
+                transaction_id:
+                  type: string
+                  example: tx_123abc
+                reason:
+                  type: string
+                  example: Item not as described
+      responses:
+        '201':
+          description: Dispute opened
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Dispute'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+
+  /api/v1/disputes/{id}/respond:
+    post:
+      tags:
+        - Disputes
+      summary: Respond to dispute
+      parameters:
+        - $ref: '#/components/parameters/DisputeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - response
+              properties:
+                response:
+                  type: string
+                  example: Here's evidence that the item was shipped correctly
+      responses:
+        '200':
+          description: Response submitted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Dispute'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+
+  /api/v1/disputes/{id}/evidence:
+    post:
+      tags:
+        - Disputes
+      summary: Upload dispute evidence
+      parameters:
+        - $ref: '#/components/parameters/DisputeId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Evidence file (max 10MB)
+                description:
+                  type: string
+                  example: Photo of damaged item
+      responses:
+        '201':
+          description: Evidence uploaded
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          evidence_id:
+                            type: string
+                          download_url:
+                            type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+
+  /api/external/webhooks/midtrans:
+    post:
+      tags:
+        - Webhooks
+      summary: Midtrans payment webhook
+      description: Process payment notifications from Midtrans
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                transaction_id:
+                  type: string
+                transaction_status:
+                  type: string
+                payment_type:
+                  type: string
+                signature_key:
+                  type: string
+      responses:
+        '200':
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/badge/{seller_id}/stats:
+    get:
+      tags:
+        - Monitoring
+      summary: Get seller badge statistics
+      description: Public endpoint for badge widget statistics
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/SellerId'
+      responses:
+        '200':
+          description: Badge statistics
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: public, max-age=60
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction_count:
+                    type: integer
+                    example: 42
+                  success_rate:
+                    type: number
+                    format: float
+                    example: 98.5
+                  kyc_tier:
+                    type: string
+                    enum: [none, basic, full]
+                  verification_status:
+                    type: string
+                    example: verified
+        '404':
+          description: Seller not found
+
+  /health:
+    get:
+      tags:
+        - Monitoring
+      summary: Basic health check
+      description: Quick health check for load balancers
+      security: []
+      responses:
+        '200':
+          description: System healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: 0.1.0
+
+  /health/detailed:
+    get:
+      tags:
+        - Monitoring
+      summary: Detailed health check
+      description: Check health of all system components
+      security: []
+      responses:
+        '200':
+          description: System health details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, unhealthy]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        enum: [healthy, unhealthy]
+                      storage:
+                        type: string
+                        enum: [healthy, unhealthy]
+                      payments:
+                        type: string
+                        enum: [healthy, degraded, unhealthy]
+        '503':
+          description: System unhealthy
+
+  /health/metrics:
+    get:
+      tags:
+        - Monitoring
+      summary: Platform metrics
+      description: Public platform metrics
+      security: []
+      responses:
+        '200':
+          description: Platform metrics
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: public, max-age=60
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timestamp:
+                    type: string
+                    format: date-time
+                  metrics:
+                    type: object
+                    properties:
+                      total_transactions:
+                        type: integer
+                      active_sellers:
+                        type: integer
+                      held_volume:
+                        type: number
+                      released_volume:
+                        type: number
+                      pending_disputes:
+                        type: integer
+                      payouts_pending:
+                        type: integer
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Bearer token authentication (session cookie)
+
+  parameters:
+    TransactionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Transaction ID
+      example: tx_abc123
+
+    SellerId:
+      name: seller_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Seller ID
+      example: seller_xyz789
+
+    BankAccountId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Bank account ID
+      example: ba_123abc
+
+    DisputeId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Dispute ID
+      example: dsp_456def
+
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number
+
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Items per page
+
+    Status:
+      name: status
+      in: query
+      schema:
+        type: string
+        enum: [pending, funded, held, released, disputed, refunded, expired, paid_out, resolved]
+      description: Filter by status
+
+    PayoutStatus:
+      name: status
+      in: query
+      schema:
+        type: string
+        enum: [pending, processing, completed, failed, cancelled]
+      description: Filter by payout status
+
+    Search:
+      name: search
+      in: query
+      schema:
+        type: string
+      description: Search in buyer email/phone
+
+  schemas:
+    SuccessResponse:
+      type: object
+      required:
+        - meta
+      properties:
+        meta:
+          type: object
+          required:
+            - request_id
+            - timestamp
+          properties:
+            request_id:
+              type: string
+              format: uuid
+            timestamp:
+              type: string
+              format: date-time
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        kyc_tier:
+          type: string
+          enum: [none, basic, full]
+        created_at:
+          type: string
+          format: date-time
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          example: tx_abc123
+        seller_id:
+          type: string
+        buyer_email:
+          type: string
+          format: email
+        buyer_phone:
+          type: string
+        amount:
+          type: number
+          format: float
+          description: Amount in IDR
+        fee_rate:
+          type: number
+          format: float
+          description: Fee rate (e.g., 0.01 for 1%)
+        fee_amount:
+          type: number
+          format: float
+          description: Fee amount in IDR
+        net_amount:
+          type: number
+          format: float
+          description: Net amount (amount - fee)
+        gateway:
+          type: string
+          enum: [midtrans, xendit, doku]
+        gateway_transaction_id:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, funded, held, released, disputed, refunded, expired, paid_out, resolved]
+        auto_release_days:
+          type: integer
+          nullable: true
+        auto_release_at:
+          type: string
+          format: date-time
+          nullable: true
+        absolute_expire_at:
+          type: string
+          format: date-time
+          nullable: true
+        shipped_at:
+          type: string
+          format: date-time
+          nullable: true
+        release_reason:
+          type: string
+          nullable: true
+          enum: [buyer_confirmed, timeout, admin_override]
+        released_at:
+          type: string
+          format: date-time
+          nullable: true
+        refunded_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Payout:
+      type: object
+      properties:
+        id:
+          type: string
+          example: po_xyz789
+        seller_id:
+          type: string
+        amount:
+          type: number
+          format: float
+          description: Payout amount in IDR
+        fee:
+          type: number
+          format: float
+          description: Processing fee (Rp 2,500)
+        net_amount:
+          type: number
+          format: float
+          description: Net amount after fee
+        status:
+          type: string
+          enum: [pending, processing, completed, failed, cancelled]
+        bank_account:
+          type: object
+          properties:
+            bank_name:
+              type: string
+            account_number_last_4:
+              type: string
+              example: "****7890"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    BankAccount:
+      type: object
+      properties:
+        id:
+          type: string
+          example: ba_123abc
+        seller_id:
+          type: string
+        bank_name:
+          type: string
+          enum: [BCA, BNI, BRI, MANDIRI, CIMB, DANAMON, PERMATA, BTPN, JENIUS]
+        account_number:
+          type: string
+        account_number_last_4:
+          type: string
+          example: "****7890"
+        account_holder_name:
+          type: string
+        is_primary:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    Dispute:
+      type: object
+      properties:
+        id:
+          type: string
+          example: dsp_456def
+        transaction_id:
+          type: string
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [open, seller_responded, under_review, resolved, closed]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - code
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          description: Machine-readable error code
+          example: VALIDATION_ERROR
+        details:
+          oneOf:
+            - type: object
+              additionalProperties:
+                type: string
+            - type: object
+              properties:
+                fields:
+                  type: object
+                  additionalProperties:
+                    type: string
+        meta:
+          type: object
+          properties:
+            request_id:
+              type: string
+              format: uuid
+            timestamp:
+              type: string
+              format: date-time
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Validation failed
+            code: VALIDATION_ERROR
+            details:
+              fields:
+                email: Must be a valid email address
+
+    AuthenticationError:
+      description: Authentication failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Invalid email or password
+            code: AUTHENTICATION_ERROR
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Transaction not found
+            code: NOT_FOUND
+
+    ConflictError:
+      description: Conflict with current state
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Transaction already shipped
+            code: CONFLICT_ERROR
