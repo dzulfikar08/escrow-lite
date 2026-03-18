@@ -1,3 +1,5 @@
+import { Request } from 'astro';
+
 /**
  * Base application error class
  * All custom errors should extend this class
@@ -18,7 +20,11 @@ export class AppError extends Error {
       error: {
         message: this.message,
         code: this.code || this.name,
-        statusCode: this.statusCode,
+        details: {},
+      },
+      meta: {
+        request_id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
       },
     };
   }
@@ -45,12 +51,16 @@ export class ValidationError extends AppError {
   }
 
   toJSON() {
+    const details = this.fields ? { fields: this.fields } : {};
     return {
       error: {
         message: this.message,
         code: this.code,
-        statusCode: this.statusCode,
-        fields: this.fields,
+        details,
+      },
+      meta: {
+        request_id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
       },
     };
   }
@@ -90,61 +100,34 @@ export class RateLimitError extends AppError {
   }
 
   toJSON() {
+    const details = this.retryAfter ? { retryAfter: this.retryAfter } : {};
     return {
       error: {
         message: this.message,
         code: this.code,
-        statusCode: this.statusCode,
-        retryAfter: this.retryAfter,
+        details,
+      },
+      meta: {
+        request_id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
       },
     };
   }
 }
 
 /**
- * Authorization errors (403)
- * Thrown when user lacks permission for an action
+ * Handle errors and return appropriate Response for API routes
+ * Converts any error to a Response object
  */
-export class AuthorizationError extends AppError {
-  constructor(message: string = 'Insufficient permissions') {
-    super(message, 403, 'AUTHORIZATION_ERROR');
-  }
-}
+export function handleError(error: unknown, request?: Request): Response {
+  let appError: AppError;
 
-/**
- * Payment errors (402)
- * Thrown when payment processing fails
- */
-export class PaymentError extends AppError {
-  constructor(message: string, public gatewayCode?: string) {
-    super(message, 402, 'PAYMENT_ERROR');
-    this.gatewayCode = gatewayCode;
-  }
-
-  toJSON() {
-    return {
-      error: {
-        message: this.message,
-        code: this.code,
-        statusCode: this.statusCode,
-        gatewayCode: this.gatewayCode,
-      },
-    };
-  }
-}
-
-/**
- * Handle errors and return appropriate response
- * Converts any error to an AppError instance
- */
-export function handleError(error: unknown): AppError {
-  // Already an AppError, return as-is
+  // Already an AppError, use as-is
   if (error instanceof AppError) {
-    return error;
+    appError = error;
   }
-
   // Zod validation error
-  if (error && typeof error === 'object' && 'issues' in error) {
+  else if (error && typeof error === 'object' && 'issues' in error) {
     const zodError = error as { issues: Array<{ path: string[]; message: string }> };
     const fields = zodError.issues.reduce((acc, issue) => {
       const field = issue.path.join('.');
@@ -152,21 +135,23 @@ export function handleError(error: unknown): AppError {
       return acc;
     }, {} as Record<string, string>);
 
-    return new ValidationError('Validation failed', fields);
+    appError = new ValidationError('Validation failed', fields);
   }
-
   // Generic error
-  if (error instanceof Error) {
-    return new AppError(error.message, 500);
+  else if (error instanceof Error) {
+    appError = new AppError(error.message, 500);
+  }
+  // Unknown error type
+  else {
+    appError = new AppError('An unexpected error occurred', 500);
   }
 
-  // Unknown error type
-  return new AppError('An unexpected error occurred', 500);
-}
+  const errorJson = appError.toJSON();
 
-/**
- * Type guard to check if error is an AppError
- */
-export function isAppError(error: unknown): error is AppError {
-  return error instanceof AppError;
+  return new Response(JSON.stringify(errorJson), {
+    status: appError.statusCode,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 }

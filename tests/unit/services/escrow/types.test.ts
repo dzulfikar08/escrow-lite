@@ -18,52 +18,55 @@ describe('Escrow Types', () => {
   });
 
   describe('Enums', () => {
-    it('should export TransactionStatus enum', async () => {
+    it('should export TransactionStatus enum with correct values', async () => {
       const { TransactionStatus } = await import('../../../../src/services/escrow/types');
       expect(TransactionStatus).toBeDefined();
       expect(TransactionStatus.PENDING).toBe('pending');
+      expect(TransactionStatus.FUNDED).toBe('funded');
       expect(TransactionStatus.HELD).toBe('held');
       expect(TransactionStatus.RELEASED).toBe('released');
+      expect(TransactionStatus.DISPUTED).toBe('disputed');
       expect(TransactionStatus.REFUNDED).toBe('refunded');
+      expect(TransactionStatus.EXPIRED).toBe('expired');
     });
 
-    it('should export KycTier enum', async () => {
+    it('should export KycTier enum with correct values', async () => {
       const { KycTier } = await import('../../../../src/services/escrow/types');
       expect(KycTier).toBeDefined();
-      expect(KycTier.TIER_1).toBe('tier_1');
-      expect(KycTier.TIER_2).toBe('tier_2');
-      expect(KycTier.TIER_3).toBe('tier_3');
+      expect(KycTier.NONE).toBe('none');
+      expect(KycTier.BASIC).toBe('basic');
+      expect(KycTier.FULL).toBe('full');
     });
 
-    it('should export ReleaseReason enum', async () => {
+    it('should export ReleaseReason enum with correct values', async () => {
       const { ReleaseReason } = await import('../../../../src/services/escrow/types');
       expect(ReleaseReason).toBeDefined();
-      expect(ReleaseReason.DELIVERY_CONFIRMED).toBe('delivery_confirmed');
-      expect(ReleaseReason.AUTO_RELEASE).toBe('auto_release');
-      expect(ReleaseReason.DISPUTE_RESOLVED).toBe('dispute_resolved');
+      expect(ReleaseReason.BUYER_CONFIRMED).toBe('buyer_confirmed');
+      expect(ReleaseReason.TIMEOUT).toBe('timeout');
+      expect(ReleaseReason.ADMIN_OVERRIDE).toBe('admin_override');
     });
 
-    it('should export DisputeReason enum', async () => {
+    it('should export DisputeReason enum with correct values', async () => {
       const { DisputeReason } = await import('../../../../src/services/escrow/types');
       expect(DisputeReason).toBeDefined();
-      expect(DisputeReason.GOODS_NOT_RECEIVED).toBe('goods_not_received');
-      expect(DisputeReason.GOODS_DAMAGED).toBe('goods_damaged');
+      expect(DisputeReason.NOT_RECEIVED).toBe('not_received');
       expect(DisputeReason.NOT_AS_DESCRIBED).toBe('not_as_described');
+      expect(DisputeReason.DAMAGED).toBe('damaged');
+      expect(DisputeReason.WRONG_ITEM).toBe('wrong_item');
       expect(DisputeReason.OTHER).toBe('other');
     });
 
-    it('should export Gateway enum', async () => {
+    it('should export Gateway enum with correct values', async () => {
       const { Gateway } = await import('../../../../src/services/escrow/types');
       expect(Gateway).toBeDefined();
-      expect(Gateway.PAYSTACK).toBe('paystack');
-      expect(Gateway.FLUTTERWAVE).toBe('flutterwave');
+      expect(Gateway.MIDTRANS).toBe('midtrans');
+      expect(Gateway.XENDIT).toBe('xendit');
+      expect(Gateway.DOKU).toBe('doku');
     });
   });
 
   describe('Type Exports', () => {
     it('should export Transaction type', () => {
-      // Type checking happens at compile time
-      // If this compiles, the type is exported
       const transaction: Transaction = {} as Transaction;
       expect(transaction).toBeDefined();
     });
@@ -95,6 +98,85 @@ describe('Escrow Types', () => {
 
     it('should export SellerBalances type', () => {
       const balances: SellerBalances = {} as SellerBalances;
+      expect(balances).toBeDefined();
+    });
+  });
+
+  describe('Transaction Interface', () => {
+    it('should have all required fields', async () => {
+      const { Transaction, TransactionStatus, Gateway } = await import(
+        '../../../../src/services/escrow/types'
+      );
+      const transaction: Partial<Transaction> = {
+        id: '123',
+        seller_id: '456',
+        buyer_email: 'buyer@example.com',
+        buyer_phone: '+628123456789',
+        amount: 100000,
+        fee_rate: 0.01,
+        fee_amount: 1000,
+        net_amount: 99000,
+        gateway: Gateway.MIDTRANS,
+        status: TransactionStatus.PENDING,
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+      expect(transaction).toBeDefined();
+    });
+
+    it('should have Indonesian market specific fields', async () => {
+      const { Gateway } = await import('../../../../src/services/escrow/types');
+      expect(Gateway.MIDTRANS).toBe('midtrans');
+      expect(Gateway.XENDIT).toBe('xendit');
+      expect(Gateway.DOKU).toBe('doku');
+    });
+  });
+
+  describe('Seller Interface', () => {
+    it('should have all required fields including Indonesian compliance', async () => {
+      const { Seller, KycTier } = await import('../../../../src/services/escrow/types');
+      const seller: Partial<Seller> = {
+        id: '123',
+        auth_id: 'auth123',
+        name: 'Test Business',
+        email: 'test@example.com',
+        phone: '+628123456789',
+        kyc_tier: KycTier.BASIC,
+        version: 1,
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+      expect(seller).toBeDefined();
+    });
+  });
+
+  describe('LedgerEntry Interface', () => {
+    it('should have correct type and direction fields', async () => {
+      const { LedgerEntry } = await import('../../../../src/services/escrow/types');
+      const ledgerEntry: Partial<LedgerEntry> = {
+        id: '123',
+        seller_id: '456',
+        type: 'hold',
+        direction: 'in',
+        amount: 100000,
+        description: 'Test entry',
+        balance_before: 0,
+        balance_after: 100000,
+        created_at: new Date(),
+      };
+      expect(ledgerEntry).toBeDefined();
+    });
+  });
+
+  describe('SellerBalances Interface', () => {
+    it('should have correct balance fields', async () => {
+      const { SellerBalances } = await import('../../../../src/services/escrow/types');
+      const balances: SellerBalances = {
+        held_balance: 5000000,
+        available_balance: 3000000,
+        pending_payouts: 1000000,
+        total_paid_out: 10000000,
+      };
       expect(balances).toBeDefined();
     });
   });

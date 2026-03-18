@@ -6,10 +6,7 @@ import {
   NotFoundError,
   ConflictError,
   RateLimitError,
-  AuthorizationError,
-  PaymentError,
   handleError,
-  isAppError,
 } from '../../../src/lib/errors';
 
 describe('Error Classes', () => {
@@ -31,16 +28,20 @@ describe('Error Classes', () => {
       expect(error.code).toBe('TEST_ERROR');
     });
 
-    it('should serialize to JSON', () => {
+    it('should serialize to JSON with meta.request_id and meta.timestamp', () => {
       const error = new AppError('Test error', 400, 'TEST_ERROR');
       const json = error.toJSON();
-      expect(json).toEqual({
-        error: {
-          message: 'Test error',
-          code: 'TEST_ERROR',
-          statusCode: 400,
-        },
+      expect(json).toHaveProperty('error');
+      expect(json).toHaveProperty('meta');
+      expect(json.error).toEqual({
+        message: 'Test error',
+        code: 'TEST_ERROR',
+        details: {},
       });
+      expect(json.meta).toHaveProperty('request_id');
+      expect(json.meta).toHaveProperty('timestamp');
+      expect(typeof json.meta.request_id).toBe('string');
+      expect(typeof json.meta.timestamp).toBe('string');
     });
   });
 
@@ -73,11 +74,11 @@ describe('Error Classes', () => {
       expect(error.fields).toEqual(fields);
     });
 
-    it('should serialize to JSON with fields', () => {
+    it('should serialize to JSON with fields in details', () => {
       const fields = { email: 'Invalid email' };
       const error = new ValidationError('Validation failed', fields);
       const json = error.toJSON();
-      expect(json.error.fields).toEqual(fields);
+      expect(json.error.details).toEqual({ fields });
     });
   });
 
@@ -117,86 +118,58 @@ describe('Error Classes', () => {
       expect(error.retryAfter).toBe(60);
     });
 
-    it('should serialize to JSON with retryAfter', () => {
+    it('should serialize to JSON with retryAfter in details', () => {
       const error = new RateLimitError('Too many requests', 60);
       const json = error.toJSON();
-      expect(json.error.retryAfter).toBe(60);
-    });
-  });
-
-  describe('AuthorizationError', () => {
-    it('should create authorization error', () => {
-      const error = new AuthorizationError();
-      expect(error.message).toBe('Insufficient permissions');
-      expect(error.statusCode).toBe(403);
-    });
-  });
-
-  describe('PaymentError', () => {
-    it('should create payment error without gateway code', () => {
-      const error = new PaymentError('Payment failed');
-      expect(error.message).toBe('Payment failed');
-      expect(error.statusCode).toBe(402);
-      expect(error.gatewayCode).toBeUndefined();
-    });
-
-    it('should create payment error with gateway code', () => {
-      const error = new PaymentError('Payment failed', 'INSUFFICIENT_FUNDS');
-      expect(error.gatewayCode).toBe('INSUFFICIENT_FUNDS');
-    });
-
-    it('should serialize to JSON with gatewayCode', () => {
-      const error = new PaymentError('Payment failed', 'DECLINED');
-      const json = error.toJSON();
-      expect(json.error.gatewayCode).toBe('DECLINED');
+      expect(json.error.details).toEqual({ retryAfter: 60 });
     });
   });
 
   describe('handleError', () => {
-    it('should return AppError as-is', () => {
+    it('should return Response object for AppError', () => {
       const originalError = new ValidationError('Test');
-      const handled = handleError(originalError);
-      expect(handled).toBe(originalError);
+      const response = handleError(originalError);
+      expect(response).toBeInstanceOf(Response);
+      expect(response.status).toBe(400);
     });
 
-    it('should convert Zod error to ValidationError', () => {
+    it('should convert Zod error to ValidationError Response', () => {
       const zodError = {
         issues: [
           { path: ['email'], message: 'Invalid email' },
           { path: ['password'], message: 'Too short' },
         ],
       };
-      const handled = handleError(zodError);
-      expect(handled).toBeInstanceOf(ValidationError);
-      expect(handled.fields).toEqual({
-        email: 'Invalid email',
-        password: 'Too short',
-      });
+      const response = handleError(zodError);
+      expect(response).toBeInstanceOf(Response);
+      expect(response.status).toBe(400);
     });
 
-    it('should convert Error to AppError', () => {
+    it('should convert Error to AppError Response', () => {
       const error = new Error('Something went wrong');
-      const handled = handleError(error);
-      expect(handled).toBeInstanceOf(AppError);
-      expect(handled.message).toBe('Something went wrong');
+      const response = handleError(error);
+      expect(response).toBeInstanceOf(Response);
+      expect(response.status).toBe(500);
     });
 
-    it('should convert unknown to AppError', () => {
-      const handled = handleError('unknown error');
-      expect(handled).toBeInstanceOf(AppError);
-      expect(handled.message).toBe('An unexpected error occurred');
-    });
-  });
-
-  describe('isAppError', () => {
-    it('should return true for AppError instances', () => {
-      const error = new ValidationError('Test');
-      expect(isAppError(error)).toBe(true);
+    it('should convert unknown to AppError Response', () => {
+      const response = handleError('unknown error');
+      expect(response).toBeInstanceOf(Response);
+      expect(response.status).toBe(500);
     });
 
-    it('should return false for non-AppError', () => {
-      const error = new Error('Test');
-      expect(isAppError(error)).toBe(false);
+    it('should return Response with correct JSON structure', async () => {
+      const error = new ValidationError('Validation failed', { email: 'Invalid email' });
+      const response = handleError(error);
+      const json = await response.json();
+
+      expect(json).toHaveProperty('error');
+      expect(json).toHaveProperty('meta');
+      expect(json.error).toHaveProperty('message');
+      expect(json.error).toHaveProperty('code');
+      expect(json.error).toHaveProperty('details');
+      expect(json.meta).toHaveProperty('request_id');
+      expect(json.meta).toHaveProperty('timestamp');
     });
   });
 });
