@@ -1,17 +1,15 @@
 ---
 /**
- * Transactions List Page
+ * Transactions List Page (Simplified)
  *
- * Shows seller's transaction history with filtering and pagination
+ * Shows seller's transaction history
  */
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
-import TransactionList from '@/components/dashboard/TransactionList.astro';
-import TransactionCard from '@/components/dashboard/TransactionCard.astro';
 import { fetchTransactions } from '@/lib/api-client';
 
 export const prerender = false;
 
-// Get query parameters from URL
+// Get query parameters
 const url = new URL(Astro.request.url);
 const statusParam = url.searchParams.get('status') || undefined;
 const searchParam = url.searchParams.get('search') || undefined;
@@ -35,188 +33,74 @@ try {
   limit = result.limit;
 } catch (e) {
   error = e instanceof Error ? e.message : 'Failed to load transactions';
-  console.error('Error fetching transactions:', e);
 }
 
 const totalPages = Math.ceil(total / limit);
-const hasPrevPage = page > 1;
-const hasNextPage = page < totalPages;
-
-const statusOptions = [
-  { value: '', label: 'Semua Status' },
-  { value: 'pending', label: 'Menunggu Pembayaran' },
-  { value: 'funded', label: 'Dana Masuk' },
-  { value: 'held', label: 'Dana Ditahan' },
-  { value: 'released', label: 'Dana Dilepas' },
-  { value: 'paid_out', label: 'Sudah Ditarik' },
-  { value: 'disputed', label: 'Disputasi' },
-  { value: 'refunded', label: 'Dikembalikan' },
-];
 ---
 
-<DashboardLayout title="Transaksi - Escrow Lite">
+<DashboardLayout title="Transactions">
   <div class="transactions-page">
     <div class="page-header">
-      <h1>Transaksi</h1>
-      <p class="subtitle">Kelola dan pantau semua transaksi escrow Anda</p>
+      <h1>Transactions</h1>
+      <p class="subtitle">Riwayat penjualan Anda</p>
     </div>
 
-    {error ? (
-      <div class="error-banner">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-        <span>{error}</span>
+    {error && (
+      <div class="error-message">
+        {error}
       </div>
-    ) : (
+    )}
+
+    {!error && (
       <>
-        {/* Filters Bar */}
-        <div class="filters-bar">
-          <form id="filterForm" class="filter-form">
-            <div class="filter-group">
-              <label for="status">Status:</label>
-              <select
-                id="status"
-                name="status"
-                class="filter-select"
-              >
-                {statusOptions.map((option) => (
-                  <option
-                    value={option.value}
-                    selected={statusParam === option.value}
-                  >
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div class="filter-group">
-              <label for="search">Cari:</label>
-              <input
-                type="text"
-                id="search"
-                name="search"
-                class="filter-input"
-                placeholder="ID transaksi atau email pembeli"
-                value={searchParam || ''}
-              />
-            </div>
-
-            <button type="submit" class="btn btn-primary">
-              Terapkan Filter
-            </button>
-
-            {(statusParam || searchParam) && (
-              <a href="/dashboard/transactions" class="btn btn-secondary">
-                Reset
-              </a>
-            )}
-          </form>
-
-          <div class="results-count">
-            {total === 0 ? (
-              <span>Tidak ada transaksi</span>
-            ) : (
-              <span>
-                Menampilkan {transactions.length} dari {total} transaksi
-              </span>
-            )}
+        <div class="stats-summary">
+          <div class="stat-item">
+            <span class="stat-label">Total Transaksi</span>
+            <span class="stat-value">{total}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Halaman</span>
+            <span class="stat-value">{page} dari {totalPages}</span>
           </div>
         </div>
 
-        {/* Transactions List - Desktop (Table) */}
-        <div class="desktop-view">
-          <TransactionList transactions={transactions} />
-        </div>
-
-        {/* Transactions List - Mobile (Cards) */}
-        <div class="mobile-view">
-          {transactions.map((transaction) => (
-            <TransactionCard transaction={transaction} />
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {transactions.length === 0 && (
-          <div class="empty-state">
-            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-            <h2>{searchParam ? 'Tidak ditemukan' : 'Belum ada transaksi'}</h2>
-            <p>
-              {searchParam
-                ? 'Tidak ada transaksi yang cocok dengan pencarian Anda'
-                : 'Anda belum memiliki transaksi apa pun'}
-            </p>
-            {!searchParam && (
-              <a href="/dashboard" class="btn btn-primary">
-                Buat Transaksi Baru
-              </a>
-            )}
-          </div>
-        )}
-
-        {/* Pagination */}
-        {transactions.length > 0 && totalPages > 1 && (
-          <div class="pagination">
-            <div class="pagination-info">
-              Halaman {page} dari {totalPages}
-            </div>
-
-            <div class="pagination-controls">
-              {hasPrevPage ? (
-                <a
-                  href={`/dashboard/transactions?page=${page - 1}${statusParam ? `&status=${statusParam}` : ''}${searchParam ? `&search=${encodeURIComponent(searchParam)}` : ''}`}
-                  class="pagination-btn"
-                >
-                  ← Sebelumnya
-                </a>
-              ) : (
-                <span class="pagination-btn disabled">← Sebelumnya</span>
-              )}
-
-              <div class="pagination-pages">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (page <= 3) {
-                    pageNum = i + 1;
-                  } else if (page >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = page - 2 + i;
-                  }
-
-                  return (
-                    <a
-                      href={`/dashboard/transactions?page=${pageNum}${statusParam ? `&status=${statusParam}` : ''}${searchParam ? `&search=${encodeURIComponent(searchParam)}` : ''}`}
-                      class={`pagination-page ${pageNum === page ? 'active' : ''}`}
-                    >
-                      {pageNum}
-                    </a>
-                  );
-                })}
+        <div class="transactions-container">
+          <div class="transactions-list">
+            {transactions.map((tx) => (
+              <div class="transaction-item" key={tx.id}>
+                <div class="transaction-info">
+                  <span class="transaction-id">#{tx.id.slice(0, 8)}</span>
+                  <span class="transaction-status">{tx.status}</span>
+                </div>
+                <div class="transaction-details">
+                  <span class="transaction-amount">Rp {tx.amount.toLocaleString('id-ID')}</span>
+                  <span class="transaction-email">{tx.buyer_email}</span>
+                </div>
+                <div class="transaction-actions">
+                  <a href={`/dashboard/transactions/${tx.id}`} class="btn-view">
+                    Lihat Detail
+                  </a>
+                </div>
               </div>
+            ))}
+          </div>
+        </div>
 
-              {hasNextPage ? (
-                <a
-                  href={`/dashboard/transactions?page=${page + 1}${statusParam ? `&status=${statusParam}` : ''}${searchParam ? `&search=${encodeURIComponent(searchParam)}` : ''}`}
-                  class="pagination-btn"
-                >
-                  Selanjutnya →
-                </a>
-              ) : (
-                <span class="pagination-btn disabled">Selanjutnya →</span>
-              )}
-            </div>
+        {totalPages > 1 && (
+          <div class="pagination">
+            {page > 1 && (
+              <a href={`/dashboard/transactions?page=${page - 1}`} class="pagination-link">
+                ← Sebelumnya
+              </a>
+            )}
+            <span class="pagination-info">
+              Halaman {page} dari {totalPages}
+            </span>
+            {page < totalPages && (
+              <a href={`/dashboard/transactions?page=${page + 1}`} class="pagination-link">
+                Selanjutnya →
+              </a>
+            )}
           </div>
         )}
       </>
@@ -228,7 +112,7 @@ const statusOptions = [
   .transactions-page {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 2rem 1rem;
+    padding: 2rem;
   }
 
   .page-header {
@@ -238,270 +122,143 @@ const statusOptions = [
   .page-header h1 {
     font-size: 2rem;
     font-weight: 700;
+    margin-bottom: 0.5rem;
     color: #111827;
-    margin: 0 0 0.5rem 0;
   }
 
   .subtitle {
-    font-size: 1rem;
     color: #6b7280;
-    margin: 0;
   }
 
-  .error-banner {
+  .stats-summary {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem;
-    background-color: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 0.5rem;
-    color: #991b1b;
+    gap: 2rem;
     margin-bottom: 2rem;
-  }
-
-  .filters-bar {
+    padding: 1rem;
     background: white;
+    border-radius: 0.5rem;
     border: 1px solid #e5e7eb;
-    border-radius: 0.75rem;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
   }
 
-  .filter-form {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    align-items: flex-end;
-    margin-bottom: 1rem;
-  }
-
-  .filter-group {
+  .stat-item {
     display: flex;
     flex-direction: column;
-    gap: 0.375rem;
-    flex: 1;
-    min-width: 200px;
+    gap: 0.25rem;
   }
 
-  .filter-group label {
+  .stat-label {
     font-size: 0.875rem;
-    font-weight: 500;
+    color: #6b7280;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .transactions-container {
+    background: white;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+  }
+
+  .transactions-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .transaction-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .transaction-item:last-child {
+    border-bottom: none;
+  }
+
+  .transaction-info {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .transaction-id {
+    font-family: monospace;
+    font-weight: 600;
     color: #374151;
   }
 
-  .filter-select,
-  .filter-input {
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
-    font-size: 0.9375rem;
-    transition: border-color 0.15s, box-shadow 0.15s;
-  }
-
-  .filter-select:focus,
-  .filter-input:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-  }
-
-  .filter-input {
-    width: 100%;
-  }
-
-  .btn {
-    display: inline-block;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 0.375rem;
-    font-size: 0.9375rem;
+  .transaction-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
     font-weight: 500;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.15s;
+    text-transform: uppercase;
   }
 
-  .btn-primary {
-    background-color: #2563eb;
-    color: white;
+  .transaction-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: flex-start;
   }
 
-  .btn-primary:hover {
-    background-color: #1d4ed8;
+  .transaction-amount {
+    font-weight: 600;
+    color: #111827;
   }
 
-  .btn-secondary {
-    background-color: #6b7280;
-    color: white;
-  }
-
-  .btn-secondary:hover {
-    background-color: #4b5563;
-  }
-
-  .results-count {
+  .transaction-email {
     font-size: 0.875rem;
     color: #6b7280;
   }
 
-  .desktop-view {
-    display: block;
+  .btn-view {
+    padding: 0.5rem 1rem;
+    background: #2563eb;
+    color: white;
+    border-radius: 0.375rem;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
   }
 
-  .mobile-view {
-    display: none;
-  }
-
-  @media (max-width: 768px) {
-    .desktop-view {
-      display: none;
-    }
-
-    .mobile-view {
-      display: block;
-    }
-
-    .filter-form {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .filter-group {
-      min-width: 100%;
-    }
-  }
-
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 4rem 2rem;
-    text-align: center;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.75rem;
-  }
-
-  .empty-state svg {
-    color: #9ca3af;
-    margin-bottom: 1.5rem;
-  }
-
-  .empty-state h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #111827;
-    margin: 0 0 0.5rem 0;
-  }
-
-  .empty-state p {
-    color: #6b7280;
-    margin: 0 0 1.5rem 0;
+  .btn-view:hover {
+    background: #1d4ed8;
   }
 
   .pagination {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    padding: 1.5rem;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.75rem;
-    margin-top: 1.5rem;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding: 1rem;
+  }
+
+  .pagination-link {
+    padding: 0.5rem 1rem;
+    background: #2563eb;
+    color: white;
+    border-radius: 0.375rem;
+    text-decoration: none;
   }
 
   .pagination-info {
-    font-size: 0.875rem;
     color: #6b7280;
   }
 
-  .pagination-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .pagination-btn {
-    padding: 0.5rem 1rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    color: #374151;
-    text-decoration: none;
-    transition: all 0.15s;
-  }
-
-  .pagination-btn:hover:not(.disabled) {
-    background-color: #f3f4f6;
-    border-color: #9ca3af;
-  }
-
-  .pagination-btn.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-
-  .pagination-pages {
-    display: flex;
-    gap: 0.25rem;
-  }
-
-  .pagination-page {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 2rem;
-    height: 2rem;
-    padding: 0 0.5rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    color: #374151;
-    text-decoration: none;
-    transition: all 0.15s;
-  }
-
-  .pagination-page:hover {
-    background-color: #f3f4f6;
-    border-color: #9ca3af;
-  }
-
-  .pagination-page.active {
-    background-color: #2563eb;
-    border-color: #2563eb;
-    color: white;
-  }
-
-  @media (max-width: 640px) {
-    .pagination {
-      flex-direction: column;
-      gap: 1rem;
-      text-align: center;
-    }
-
-    .pagination-controls {
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-  }
-
-  /* Loading skeleton styles */
-  .skeleton {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-    background-size: 200% 100%;
-    animation: loading 1.5s infinite;
-    border-radius: 0.375rem;
-  }
-
-  @keyframes loading {
-    0% {
-      background-position: 200% 0;
-    }
-    100% {
-      background-position: -200% 0;
-    }
+  .error-message {
+    padding: 1rem;
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    border-radius: 0.5rem;
+    color: #991b1b;
+    margin-bottom: 1rem;
   }
 </style>
