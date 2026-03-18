@@ -1,0 +1,12 @@
+# Development environment variables
+# Copy this to .dev.vars for local development
+
+# Local D1 Database
+D1_DATABASE_ID=
+
+# Local Auth Secret (generate with: openssl rand -base64 32)
+BETTER_AUTH_SECRET=
+
+# Local Application URL
+BETTER_AUTH_URL=http://localhost:4321
+APP_URL=http://localhost:4321
