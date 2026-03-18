@@ -84,3 +84,15 @@ export function validationErrorResponse(errors: any): Response {
     },
   });
 }
+
+/**
+ * Create a standardized API response
+ */
+export function createApiResponse(data: any, status: number = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+}
