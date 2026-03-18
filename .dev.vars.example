@@ -3,3 +3,4 @@ MIDTRANS_SERVER_KEY=SB-Mid-server-xxx
 MIDTRANS_CLIENT_KEY=SB-Mid-client-xxx
 WEBHOOK_SIGNING_SECRET=dev-secret-change-in-production
 ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+MIDTRANS_API_URL=https://api.sandbox.midtrans.com

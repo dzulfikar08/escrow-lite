@@ -26,7 +26,17 @@ ENVIRONMENT = "development"
 [triggers]
 crons = ["*/5 * * * *"]
 
-# Production config (to be filled later)
+[env.production]
+name = "escrow-lite-prod"
 
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "escrow-lite-prod"
+database_id = ""  # To be filled during deployment
 
+[[env.production.r2_buckets]]
+binding = "STORAGE"
+bucket_name = "escrow-lite-prod-evidence"
 
+[env.production.vars]
+ENVIRONMENT = "production"
