@@ -1,35 +1,21 @@
 /**
  * Cloudflare Workers Type Definitions
- * D1 Database and ExecutionContext types
+ * Extends @cloudflare/workers-types with project-specific bindings
  */
 
-export interface D1Result {
-  meta: {
-    duration: number;
-    last_row_id: number | null;
-    changes: number;
-    served_by: string;
-  };
-  success: boolean;
-  error: Error | null;
-}
+import type { D1Database as CF_D1Database } from '@cloudflare/workers-types';
 
-export interface D1PreparedStatement {
-  bind(...values: unknown[]): D1PreparedStatement;
-  first<T = unknown>(): Promise<T | null>;
-  all<T = unknown>(): Promise<{ results: T[]; success: boolean; error: Error | null }>;
-  run(): Promise<D1Result>;
-}
-
-export interface D1Database {
-  prepare(query: string): D1PreparedStatement;
-  batch(statements: D1PreparedStatement[]): Promise<D1Result[]>;
-  exec(query: string): Promise<D1Result>;
-}
+// Re-export D1Database from Cloudflare types
+export type D1Database = CF_D1Database;
 
 export interface ExecutionContext {
   waitUntil(promise: Promise<unknown>): void;
   passThroughOnException(): void;
+}
+
+export interface Env {
+  DB: D1Database;
+  // Add other Cloudflare bindings here as needed
 }
 
 declare global {

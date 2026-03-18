@@ -1,5 +1,19 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import fs from 'fs';
+import path from 'path';
+
+export interface TestSeller {
+  id: string;
+  name: string;
+  email: string;
+  kyc_tier: string;
+}
+
+export interface SellerOverrides {
+  id?: string;
+  name?: string;
+  email?: string;
+  kyc_tier?: string;
+}
 
 export class TestDatabase {
   constructor(private db?: D1Database) {
@@ -13,19 +27,29 @@ export class TestDatabase {
       throw new Error('Database not initialized');
     }
 
-    const schemaPath = join(process.cwd(), 'src/db/schema.sql');
-    const schema = readFileSync(schemaPath, 'utf-8');
+    const statements = await this.getSchemaStatements();
 
-    // Split schema into individual statements
-    const statements = schema
+    for (const statement of statements) {
+      try {
+        await this.db.exec(statement);
+      } catch (error) {
+        throw new Error(
+          `Migration failed: ${error}\nStatement: ${statement.substring(0, 200)}...`
+        );
+      }
+    }
+  }
+
+  private async getSchemaStatements(): Promise<string[]> {
+    const schemaPath = path.join(process.cwd(), 'src/db/schema.sql');
+    const schema = fs.readFileSync(schemaPath, 'utf-8');
+
+    return schema
       .split(';')
       .map(s => s.trim())
-      .filter(s => s.length > 0);
-
-    // Execute each statement
-    for (const statement of statements) {
-      await this.db.exec(statement);
-    }
+      .filter(
+        s => s.length > 0 && !s.startsWith('--') && !s.startsWith('/**')
+      );
   }
 
   async reset(): Promise<void> {
@@ -34,6 +58,7 @@ export class TestDatabase {
     }
 
     // Clear all tables in correct order (respecting foreign keys)
+    // D1 doesn't support traditional transactions, but we handle errors gracefully
     const tables = [
       'audit_log',
       'webhook_delivery_log',
@@ -51,50 +76,39 @@ export class TestDatabase {
     ];
 
     for (const table of tables) {
-      await this.db.exec(`DELETE FROM ${table}`);
+      try {
+        await this.db.prepare(`DELETE FROM ${table}`).run();
+      } catch (error) {
+        throw new Error(`Failed to reset ${table}: ${error}`);
+      }
     }
   }
 
-  async createSeller(overrides: Partial<any> = {}): Promise<any> {
+  async createSeller(overrides: SellerOverrides = {}): Promise<TestSeller> {
     if (!this.db) {
       throw new Error('Database not initialized');
     }
 
-    const seller = {
-      id: overrides.id || 'test-seller-id',
-      name: overrides.name || 'Test Seller',
-      email: overrides.email || 'test@example.com',
-      api_key_hash: overrides.api_key_hash || 'test-key-hash',
-      kyc_tier: overrides.kyc_tier || 'basic',
-      kyc_verified_at: overrides.kyc_verified_at || new Date().toISOString(),
-      webhook_url: overrides.webhook_url || null,
-      created_at: overrides.created_at || new Date().toISOString(),
-      updated_at: overrides.updated_at || new Date().toISOString(),
-    };
+    const id = overrides.id || crypto.randomUUID();
 
     await this.db
       .prepare(
-        `
-        INSERT INTO sellers (
-          id, name, email, api_key_hash, kyc_tier,
-          kyc_verified_at, webhook_url, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `
+        'INSERT INTO sellers (id, name, email, kyc_tier) VALUES (?, ?, ?, ?)'
       )
       .bind(
-        seller.id,
-        seller.name,
-        seller.email,
-        seller.api_key_hash,
-        seller.kyc_tier,
-        seller.kyc_verified_at,
-        seller.webhook_url,
-        seller.created_at,
-        seller.updated_at
+        id,
+        overrides.name || 'Test',
+        overrides.email || `test@${id.substring(0, 8)}.com`,
+        overrides.kyc_tier || 'none'
       )
       .run();
 
-    return seller;
+    return {
+      id,
+      name: overrides.name || 'Test',
+      email: overrides.email || `test@${id.substring(0, 8)}.com`,
+      kyc_tier: overrides.kyc_tier || 'none',
+    };
   }
 
   getDb(): D1Database {
