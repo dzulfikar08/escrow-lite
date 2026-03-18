@@ -12,7 +12,12 @@ export default defineConfig({
     environmentOptions: {
       modules: true,
       bindings: {
-        // Test bindings will be configured per test
+        // D1 database will be created by Miniflare automatically
+        // Integration tests access it via globalThis.Miniflare.env.DB
+      },
+      d1Databases: {
+        // Create an in-memory D1 database for tests
+        DB: ':memory:',
       },
     },
     poolOptions: {
@@ -30,5 +35,6 @@ export default defineConfig({
         '**/*.astro',
       ],
     },
+    setupFiles: [],
   },
 });
