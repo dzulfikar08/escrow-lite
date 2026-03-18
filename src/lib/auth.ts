@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { kyselyAdapter } from "@better-auth/kysely-adapter";
 import { Kysely } from "kysely";
 import { D1Dialect } from "kysely-d1";
+import { SESSION_CONFIG, AUTH_CONFIG } from "./auth-constants";
 
 /**
  * Better Auth instance factory - must be called with DB from context
@@ -24,19 +25,19 @@ export function getAuth(db: D1Database) {
       },
     },
     session: {
-      expiresIn: 60 * 60 * 24 * 7, // 7 days
-      updateAge: 60 * 60 * 24, // 1 day
+      expiresIn: SESSION_CONFIG.EXPIRES_IN,
+      updateAge: SESSION_CONFIG.UPDATE_AGE,
       cookieCache: {
         enabled: true,
-        maxAge: 5 * 60, // 5 minutes
+        maxAge: SESSION_CONFIG.COOKIE_CACHE_MAX_AGE,
       },
     },
     advanced: {
-      cookiePrefix: 'escrow-lite',
+      cookiePrefix: AUTH_CONFIG.COOKIE_PREFIX,
       crossSubDomainCookies: {
-        enabled: true,
+        enabled: AUTH_CONFIG.CROSS_SUBDOMAIN_COOKIES,
       },
-      useSecureCookies: process.env.NODE_ENV === 'production',
+      useSecureCookies: AUTH_CONFIG.USE_SECURE_COOKIES,
     },
     account: {
       accountLinking: {
