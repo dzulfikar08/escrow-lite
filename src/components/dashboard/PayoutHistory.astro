@@ -42,13 +42,13 @@ const getPayoutStatusLabel = (status: string): string => {
 
 const getPayoutStatusColor = (status: string): string => {
   const colors: Record<string, string> = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    processing: 'bg-blue-100 text-blue-800',
-    completed: 'bg-green-100 text-green-800',
-    failed: 'bg-red-100 text-red-800',
-    cancelled: 'bg-gray-100 text-gray-800'
+    pending: 'badge-yellow',
+    processing: 'badge-blue',
+    completed: 'badge-green',
+    failed: 'badge-red',
+    cancelled: 'badge-gray'
   };
-  return colors[status] || 'bg-gray-100 text-gray-800';
+  return colors[status] || 'badge-gray';
 };
 ---
 
@@ -290,6 +290,13 @@ const getPayoutStatusColor = (status: string): string => {
     font-size: 0.75rem;
     color: #9ca3af;
   }
+
+  /* Status badge color variants */
+  .badge-yellow { background-color: #fef3c7; color: #92400e; }
+  .badge-blue   { background-color: #dbeafe; color: #1e40af; }
+  .badge-green  { background-color: #dcfce7; color: #166534; }
+  .badge-red    { background-color: #fee2e2; color: #991b1b; }
+  .badge-gray   { background-color: #f3f4f6; color: #1f2937; }
 
   @media (max-width: 768px) {
     .payout-item {

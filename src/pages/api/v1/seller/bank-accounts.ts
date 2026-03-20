@@ -35,7 +35,7 @@ export const GET: APIRoute = async (context) => {
 
   try {
     // Get DB from runtime
-    const db = context.locals.runtime?.runtime.env.DB;
+    const db = context.locals.runtime?.env.DB;
     if (!db) {
       return jsonResponse(
         {

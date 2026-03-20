@@ -5,7 +5,6 @@
  * Shows seller's transaction history
  */
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
-import { fetchTransactions } from '@/lib/api-client';
 
 export const prerender = false;
 
@@ -15,22 +14,35 @@ const statusParam = url.searchParams.get('status') || undefined;
 const searchParam = url.searchParams.get('search') || undefined;
 const pageParam = url.searchParams.get('page');
 const page = pageParam ? parseInt(pageParam, 10) : 1;
+const limit = 50;
 
 let transactions: any[] = [];
 let total = 0;
-let limit = 50;
 let error: string | null = null;
 
 try {
-  const result = await fetchTransactions({
-    status: statusParam,
-    search: searchParam,
-    page,
-    limit,
-  });
-  transactions = result.transactions;
-  total = result.total;
-  limit = result.limit;
+  const queryParams = new URLSearchParams();
+  if (statusParam) queryParams.append('status', statusParam);
+  if (searchParam) queryParams.append('search', searchParam);
+  queryParams.append('page', page.toString());
+  queryParams.append('limit', limit.toString());
+
+  const response = await fetch(
+    `${Astro.url.origin}/api/v1/seller/transactions?${queryParams.toString()}`,
+    {
+      headers: {
+        'Cookie': Astro.request.headers.get('cookie') || ''
+      }
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to load transactions: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  transactions = result.data.transactions;
+  total = result.data.total;
 } catch (e) {
   error = e instanceof Error ? e.message : 'Failed to load transactions';
 }
@@ -112,55 +124,69 @@ const totalPages = Math.ceil(total / limit);
   .transactions-page {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 2rem;
   }
 
   .page-header {
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
   }
 
   .page-header h1 {
-    font-size: 2rem;
-    font-weight: 700;
+    font-size: 2.25rem;
+    font-weight: 800;
     margin-bottom: 0.5rem;
-    color: #111827;
+    color: #0a1628;
+    letter-spacing: -0.02em;
   }
 
   .subtitle {
-    color: #6b7280;
+    color: #64748b;
+    font-size: 1rem;
   }
 
   .stats-summary {
-    display: flex;
-    gap: 2rem;
-    margin-bottom: 2rem;
-    padding: 1rem;
-    background: white;
-    border-radius: 0.5rem;
-    border: 1px solid #e5e7eb;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
   }
 
   .stat-item {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 1rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(10, 22, 40, 0.05);
+    transition: all 0.3s ease;
+  }
+
+  .stat-item:hover {
+    box-shadow: 0 4px 12px rgba(10, 22, 40, 0.08);
+    transform: translateY(-2px);
   }
 
   .stat-label {
-    font-size: 0.875rem;
-    color: #6b7280;
+    font-size: 0.8125rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
 
   .stat-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #111827;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #0a1628;
+    letter-spacing: -0.02em;
   }
 
   .transactions-container {
     background: white;
-    border-radius: 0.5rem;
-    border: 1px solid #e5e7eb;
+    border-radius: 1rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(10, 22, 40, 0.05);
     overflow: hidden;
   }
 
@@ -170,11 +196,17 @@ const totalPages = Math.ceil(total / limit);
   }
 
   .transaction-item {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1.5rem;
     align-items: center;
-    padding: 1rem;
-    border-bottom: 1px solid #e5e7eb;
+    padding: 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    transition: all 0.2s ease;
+  }
+
+  .transaction-item:hover {
+    background: #f8fafc;
   }
 
   .transaction-item:last-child {
@@ -188,17 +220,23 @@ const totalPages = Math.ceil(total / limit);
   }
 
   .transaction-id {
-    font-family: monospace;
-    font-weight: 600;
-    color: #374151;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+    font-weight: 700;
+    color: #0a1628;
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+    padding: 0.375rem 0.75rem;
+    background: #f1f5f9;
+    border-radius: 0.5rem;
   }
 
   .transaction-status {
-    padding: 0.25rem 0.75rem;
+    padding: 0.375rem 0.875rem;
     border-radius: 9999px;
     font-size: 0.75rem;
-    font-weight: 500;
+    font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .transaction-details {
@@ -209,56 +247,95 @@ const totalPages = Math.ceil(total / limit);
   }
 
   .transaction-amount {
-    font-weight: 600;
-    color: #111827;
+    font-weight: 700;
+    color: #0a1628;
+    font-size: 1rem;
+    font-family: var(--font-display);
   }
 
   .transaction-email {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: #64748b;
   }
 
   .btn-view {
-    padding: 0.5rem 1rem;
-    background: #2563eb;
+    padding: 0.625rem 1.25rem;
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
     color: white;
-    border-radius: 0.375rem;
+    border-radius: 0.625rem;
     text-decoration: none;
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.25);
+    font-family: var(--font-display);
   }
 
   .btn-view:hover {
-    background: #1d4ed8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
   }
 
   .pagination {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 1rem;
+    gap: 1.5rem;
     margin-top: 2rem;
-    padding: 1rem;
+    padding: 1.5rem;
   }
 
   .pagination-link {
-    padding: 0.5rem 1rem;
-    background: #2563eb;
+    padding: 0.625rem 1.25rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
-    border-radius: 0.375rem;
+    border-radius: 0.625rem;
     text-decoration: none;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+    transition: all 0.3s ease;
+    font-family: var(--font-display);
+  }
+
+  .pagination-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
   }
 
   .pagination-info {
-    color: #6b7280;
+    color: #64748b;
+    font-weight: 500;
   }
 
   .error-message {
-    padding: 1rem;
-    background: #fee2e2;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
     border: 1px solid #fecaca;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     color: #991b1b;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+  }
+
+  @media (max-width: 768px) {
+    .transaction-item {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .transaction-info {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .btn-view {
+      width: 100%;
+      text-align: center;
+    }
+
+    .stats-summary {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

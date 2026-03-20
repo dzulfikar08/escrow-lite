@@ -17,7 +17,7 @@ export const GET: APIRoute = async (context) => {
     const admin = await verifyAdmin(context);
 
     // Get database from runtime
-    const db = context.locals.runtime?.runtime.env.DB;
+    const db = context.locals.runtime?.env.DB;
     if (!db) {
       return jsonResponse(
         { error: 'Database not available' },
@@ -209,7 +209,7 @@ export const POST: APIRoute = async (context) => {
     const admin = await verifyAdmin(context);
 
     // Get database from runtime
-    const db = context.locals.runtime?.runtime.env.DB;
+    const db = context.locals.runtime?.env.DB;
     if (!db) {
       return jsonResponse(
         { error: 'Database not available' },

@@ -20,6 +20,9 @@ export const AUTH_CONFIG = {
   /** Enable secure cookies in production */
   USE_SECURE_COOKIES: process.env.NODE_ENV === 'production',
 
+  /** Base URL for the application (required for cross-subdomain cookies) */
+  BASE_URL: process.env.BETTER_AUTH_URL || 'https://escrow-lite.dzulfikar-at.workers.dev',
+
   /** Enable cross-subdomain cookies */
-  CROSS_SUBDOMAIN_COOKIES: true,
+  CROSS_SUBDOMAIN_COOKIES: false, // Disabled for MVP - requires baseURL configuration
 } as const;

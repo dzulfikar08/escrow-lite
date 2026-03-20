@@ -3,13 +3,17 @@ main = "./dist/_worker.js/index.js"
 compatibility_date = "2025-03-18"
 compatibility_flags = ["nodejs_compat"]
 
+# Serve Astro static assets (e.g. /_astro/*) from dist/
+[assets]
+directory = "./dist"
+
 # Observability
 [observability]
 enabled = true
 
 # Cron triggers for scheduled jobs
-[triggers]
-crons = ["*/5 * * * *"]
+# [triggers]
+# crons = ["*/5 * * * *"]
 
 # D1 Database
 [[d1_databases]]
@@ -29,3 +33,4 @@ id = "476992387f394eb5b82b504dfd9e049b"
 
 [vars]
 ENVIRONMENT = "production"
+BETTER_AUTH_URL = "https://escrow-lite.dzulfikar-at.workers.dev"

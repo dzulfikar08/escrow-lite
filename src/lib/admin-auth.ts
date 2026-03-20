@@ -29,7 +29,7 @@ export async function verifyAdmin(context: APIContext): Promise<AdminUser> {
   }
 
   // Get DB from runtime
-  const db = context.locals.runtime?.runtime.env.DB;
+  const db = context.locals.runtime?.env.DB;
   if (!db) {
     throw new AuthenticationError('Database not available');
   }

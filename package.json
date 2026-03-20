@@ -14,7 +14,8 @@
     "db:create": "bun migrations/create.ts",
     "db:rollback": "bun migrations/rollback.ts",
     "cf:dev": "wrangler dev --assets=./dist",
-    "cf:deploy": "wrangler deploy"
+    "cf:deploy": "wrangler deploy",
+    "deploy": "astro build && bun scripts/write-assetsignore.ts && wrangler deploy"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.0.0",

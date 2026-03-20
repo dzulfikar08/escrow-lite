@@ -1,6 +1,4 @@
 ---
-import { getAuth } from '@/lib/auth';
-import { verifyAdminPage } from '@/lib/admin-auth';
 import AdminHeader from '@/components/admin/AdminHeader.astro';
 import Layout from '@/layouts/Layout.astro';
 
@@ -10,25 +8,10 @@ interface Props {
 
 const { title = 'Admin Panel - Escrow Lite' } = Astro.props;
 
-// Get the current path for active state highlighting
 const currentPath = Astro.url.pathname;
 
-// Get the D1 database from runtime
-const db = Astro.locals.runtime.env.DB;
-
-// Check authentication
-const auth = getAuth(db);
-const session = await auth.api.getSession({
-  headers: Astro.request.headers
-});
-
-// Verify admin access
-const adminUser = await verifyAdminPage(Astro);
-
-if (!adminUser) {
-  // Not an admin - redirect to seller dashboard
-  return Astro.redirect('/dashboard?error=access_denied');
-}
+// adminUser is guaranteed by middleware for /admin/* routes
+const adminUser = Astro.locals.adminUser!;
 ---
 
 <Layout title={title}>

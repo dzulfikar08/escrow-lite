@@ -7,13 +7,14 @@ export const prerender = false;
 export const POST: APIRoute = async (context) => {
   try {
     // Get DB from runtime
-    const db = context.locals.runtime?.runtime.env.DB;
+    const db = context.locals.runtime?.env.DB;
     if (!db) {
       throw new AppError('Database not available', 500, 'INTERNAL_ERROR');
     }
 
-    // Get auth instance with DB
-    const auth = getAuth(db);
+    // Get auth instance with DB and secret
+    const secret = context.locals.runtime?.env?.BETTER_AUTH_SECRET as string;
+    const auth = getAuth(db, secret);
 
     // Sign out user (clears session cookie)
     await auth.api.signOut({

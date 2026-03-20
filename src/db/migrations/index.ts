@@ -112,16 +112,13 @@ export async function applyMigration(
 export async function migrate(db: D1Database): Promise<void> {
   console.log('Starting database migration...');
 
-  // For now, we only have the initial migration
-  // In the future, this will load all migration files from the migrations directory
+  // Apply the initial migration (main schema)
   const initialMigration = await getInitialMigration();
-
-  // Apply the initial migration
   await applyMigration(db, initialMigration);
 
-  // TODO: Load and apply additional migrations from migrations/ directory
-  // Migration files will be numbered: 001_initial_schema.sql, 002_add_indexes.sql, etc.
-  // Each migration file will have a corresponding .ts file that exports the Migration object
+  // Apply better-auth tables migration
+  const { betterAuthTablesMigration } = await import('./003_better_auth_tables.js');
+  await applyMigration(db, betterAuthTablesMigration);
 
   console.log('Database migration completed');
 }

@@ -2,6 +2,9 @@ import { defineMiddleware } from 'astro:middleware';
 import { getAuth } from '@/lib/auth';
 import { ErrorTracker } from '@/lib/monitoring/error-tracker';
 
+const PROTECTED_PREFIXES = ['/dashboard'];
+const ADMIN_PREFIXES = ['/admin'];
+
 export const onRequest = defineMiddleware(async (context, next) => {
   // Generate unique request ID for tracing
   const requestId = crypto.randomUUID();
@@ -14,10 +17,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (env?.DB) {
     // Make the database available through context.locals
     context.locals.db = env.DB;
-    context.locals.getAuth = () => getAuth(env.DB);
+    context.locals.getAuth = () => getAuth(env.DB, env.BETTER_AUTH_SECRET as string);
 
     // Initialize Better Auth and get session
-    const auth = getAuth(env.DB);
+    const auth = getAuth(env.DB, env.BETTER_AUTH_SECRET as string);
 
     try {
       // Get the session from the request cookies
@@ -47,6 +50,25 @@ export const onRequest = defineMiddleware(async (context, next) => {
         }
       );
     }
+  }
+
+  // Guard protected routes — redirect to login if no session
+  const pathname = context.url.pathname;
+  const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+  const isAdmin = ADMIN_PREFIXES.some((p) => pathname.startsWith(p));
+
+  if ((isProtected || isAdmin) && !context.locals.session) {
+    return context.redirect(`/login?redirect=${encodeURIComponent(pathname)}`);
+  }
+
+  // Guard admin routes — verify admin role
+  if (isAdmin && context.locals.session && env?.DB) {
+    const { verifyAdminPage } = await import('@/lib/admin-auth');
+    const adminUser = await verifyAdminPage(context as any);
+    if (!adminUser) {
+      return context.redirect('/dashboard?error=access_denied');
+    }
+    context.locals.adminUser = adminUser;
   }
 
   try {
@@ -123,6 +145,7 @@ declare module 'astro' {
         userId: string;
       };
     } | null;
+    adminUser?: import('@/lib/admin-auth').AdminUser;
     requestId?: string;
   }
 }

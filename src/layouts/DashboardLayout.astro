@@ -1,38 +1,28 @@
 ---
-import { getAuth } from '@/lib/auth';
 import Header from '@/components/dashboard/Header.astro';
 import Navigation from '@/components/dashboard/Navigation.astro';
 import Layout from '@/layouts/Layout.astro';
 
-// Get the current path for active state highlighting
-const currentPath = Astro.url.pathname;
-
-// Get the D1 database from runtime
-const db = Astro.locals.runtime.env.DB;
-
-// Check authentication
-const auth = getAuth(db);
-const session = await auth.api.getSession({
-  headers: Astro.request.headers
-});
-
-// Redirect to login if not authenticated
-if (!session) {
-  return Astro.redirect('/login');
+interface Props {
+  title?: string;
 }
 
-// Mock seller data for now - will be replaced with real data from DB
+const { title = 'Dashboard - Escrow Lite' } = Astro.props;
+
+const currentPath = Astro.url.pathname;
+
+// Session is guaranteed by middleware for /dashboard/* routes
+const session = Astro.locals.session!;
+
 const seller = {
   id: session.user.id,
   name: session.user.name || 'Penjual',
   email: session.user.email,
-  businessName: 'Toko Saya' // Will be fetched from DB later
+  businessName: 'Toko Saya'
 };
-
-// Pass seller data and current path to components
 ---
 
-<Layout title="Dashboard - Escrow Lite">
+<Layout title={title}>
   <div class="dashboard-layout">
     <Navigation currentPath={currentPath} />
 
@@ -50,19 +40,19 @@ const seller = {
   .dashboard-layout {
     display: flex;
     min-height: 100vh;
-    background-color: #f5f5f5;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
   }
 
   .dashboard-main {
     flex: 1;
     display: flex;
     flex-direction: column;
-    margin-left: 250px; /* Width of sidebar */
+    margin-left: 280px; /* Width of sidebar */
   }
 
   .dashboard-content {
     flex: 1;
-    padding: 2rem;
+    padding: 2.5rem;
     overflow-y: auto;
   }
 
@@ -73,7 +63,25 @@ const seller = {
     }
 
     .dashboard-content {
-      padding: 1rem;
+      padding: 1.5rem;
     }
+  }
+
+  /* Custom scrollbar */
+  .dashboard-content::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .dashboard-content::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+
+  .dashboard-content::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  .dashboard-content::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
   }
 </style>

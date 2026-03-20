@@ -15,3 +15,48 @@ import DashboardLayout from '@/layouts/DashboardLayout.astro';
     </div>
   </div>
 </DashboardLayout>
+
+<style>
+  .page-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+  }
+
+  .placeholder-content {
+    text-align: center;
+    color: #6b7280;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .placeholder-content svg {
+    opacity: 0.4;
+  }
+
+  .placeholder-content h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+  }
+
+  .placeholder-content p {
+    margin: 0;
+    font-size: 0.9375rem;
+  }
+
+  .back-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+  }
+</style>

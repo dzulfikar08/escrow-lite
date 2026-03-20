@@ -13,7 +13,7 @@ export const POST: APIRoute = async (context) => {
     const requestId = crypto.randomUUID();
 
     // Get DB from runtime
-    const db = context.locals.runtime?.runtime.env.DB;
+    const db = context.locals.runtime?.env.DB;
     if (!db) {
       throw new AppError('Database not available', 500, 'INTERNAL_ERROR');
     }
@@ -22,8 +22,9 @@ export const POST: APIRoute = async (context) => {
     const body = await context.request.json();
     const data = registerSellerSchema.parse(body);
 
-    // Get auth instance with DB
-    const auth = getAuth(db);
+    // Get auth instance with DB and secret
+    const secret = context.locals.runtime?.env?.BETTER_AUTH_SECRET as string;
+    const auth = getAuth(db, secret);
 
     // Register user with request context for session cookies
     const authResponse = await auth.api.signUpEmail({

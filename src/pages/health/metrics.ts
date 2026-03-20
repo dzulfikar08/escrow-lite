@@ -21,7 +21,7 @@ export const GET: APIRoute = async (context) => {
     const requestId = crypto.randomUUID();
 
     // Get environment bindings
-    const env = context.locals.runtime?.runtime.env;
+    const env = context.locals.runtime?.env;
     if (!env) {
       throw new Error('Runtime environment not available');
     }

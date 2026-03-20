@@ -7,14 +7,10 @@
  */
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
 import StatusBadge from '@/components/dashboard/StatusBadge.astro';
-import { fetchTransaction, formatRupiah, formatDateTime, getStatusLabel } from '@/lib/api-client';
+import { formatRupiah, formatDateTime } from '@/lib/api-client';
 import type { TransactionDetailResponse } from '@/lib/api-client';
 
 export const prerender = false;
-
-interface Props {
-  id: string;
-}
 
 const { id } = Astro.params;
 
@@ -22,7 +18,21 @@ let transaction: TransactionDetailResponse | null = null;
 let error: string | null = null;
 
 try {
-  transaction = await fetchTransaction(id as string);
+  const response = await fetch(
+    `${Astro.url.origin}/api/v1/transactions/${id}`,
+    {
+      headers: {
+        'Cookie': Astro.request.headers.get('cookie') || ''
+      }
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to load transaction: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  transaction = result.data;
 } catch (e) {
   error = e instanceof Error ? e.message : 'Failed to load transaction';
   console.error('Error fetching transaction:', e);
@@ -196,6 +206,7 @@ const trackingNumber = transaction?.metadata?.tracking_number as string | undefi
               <button
                 id="shipButton"
                 class="btn btn-primary"
+                data-transaction-id={id}
                 disabled
               >
                 Tandai sebagai Dikirim
@@ -246,6 +257,7 @@ const trackingNumber = transaction?.metadata?.tracking_number as string | undefi
   <script>
     async function markAsShipped() {
       const button = document.getElementById('shipButton') as HTMLButtonElement;
+      const transactionId = button?.dataset.transactionId;
       const trackingNumber = prompt('Masukkan nomor resi (opsional):');
 
       if (trackingNumber !== null) {
@@ -253,7 +265,7 @@ const trackingNumber = transaction?.metadata?.tracking_number as string | undefi
         button.textContent = 'Memproses...';
 
         try {
-          const response = await fetch(`/api/v1/transactions/${Astro.props.id}/ship`, {
+          const response = await fetch(`/api/v1/transactions/${transactionId}/ship`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

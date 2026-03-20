@@ -2,18 +2,30 @@
 import Layout from '@/layouts/Layout.astro';
 ---
 
-<Layout title="Masuk - Escrow Lite">
+<Layout title="Daftar - Escrow Lite">
   <div class="login-page">
     <div class="login-container">
       <div class="login-header">
         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="logo">
           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
         </svg>
-        <h1>Masuk ke Escrow Lite</h1>
-        <p>Kelola transaksi escrow Anda dengan mudah</p>
+        <h1>Daftar Escrow Lite</h1>
+        <p>Buat akun untuk mulai bertransaksi</p>
       </div>
 
-      <form class="login-form" action="/api/auth/sign-in" method="POST">
+      <form class="login-form" id="registerForm">
+        <div class="form-group">
+          <label for="name">Nama</label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            required
+            placeholder="Nama lengkap"
+            autocomplete="name"
+          />
+        </div>
+
         <div class="form-group">
           <label for="email">Email</label>
           <input
@@ -33,16 +45,17 @@ import Layout from '@/layouts/Layout.astro';
             id="password"
             name="password"
             required
-            placeholder="Masukkan kata sandi"
-            autocomplete="current-password"
+            placeholder="Minimal 8 karakter"
+            autocomplete="new-password"
+            minlength="8"
           />
         </div>
 
-        <button type="submit" class="btn-submit">Masuk</button>
+        <button type="submit" class="btn-submit">Daftar</button>
       </form>
 
       <div class="login-footer">
-        <p>Belum punya akun? <a href="/register">Daftar sekarang</a></p>
+        <p>Sudah punya akun? <a href="/login">Masuk</a></p>
       </div>
     </div>
   </div>
@@ -259,4 +272,33 @@ import Layout from '@/layouts/Layout.astro';
       }
     }
   </style>
+
+  <script>
+    const form = document.getElementById('registerForm') as HTMLFormElement;
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const data = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        password: formData.get('password'),
+      };
+
+      try {
+        const res = await fetch('/api/v1/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (res.ok) {
+          window.location.href = '/login';
+        } else {
+          const err = await res.json();
+          alert(err.error?.message || 'Registrasi gagal');
+        }
+      } catch {
+        alert('Terjadi kesalahan');
+      }
+    });
+  </script>
 </Layout>

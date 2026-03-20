@@ -9,7 +9,7 @@ import { SESSION_CONFIG, AUTH_CONFIG } from "./auth-constants";
  * This factory pattern is required because we can't initialize at module level
  * (the D1 database is only available at runtime in the request context)
  */
-export function getAuth(db: D1Database) {
+export function getAuth(db: D1Database, secret?: string) {
   // Create Kysely instance with D1 dialect
   const kysely = new Kysely({
     dialect: new D1Dialect({ database: db }),
@@ -17,6 +17,8 @@ export function getAuth(db: D1Database) {
 
   return betterAuth({
     database: kyselyAdapter(kysely),
+    secret: secret || process.env.BETTER_AUTH_SECRET || 'dev-secret-change-in-production',
+    baseURL: AUTH_CONFIG.BASE_URL,
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false, // For MVP

@@ -57,24 +57,24 @@ const balances: BalanceCard[] = [
 function getColorClasses(color: string) {
   const colors = {
     purple: {
-      bg: 'bg-purple-50',
-      icon: 'bg-purple-100 text-purple-600',
-      text: 'text-purple-900'
+      bg: 'color-purple',
+      icon: 'icon-purple',
+      text: 'text-purple'
     },
     green: {
-      bg: 'bg-green-50',
-      icon: 'bg-green-100 text-green-600',
-      text: 'text-green-900'
+      bg: 'color-green',
+      icon: 'icon-green',
+      text: 'text-green'
     },
     yellow: {
-      bg: 'bg-yellow-50',
-      icon: 'bg-yellow-100 text-yellow-600',
-      text: 'text-yellow-900'
+      bg: 'color-yellow',
+      icon: 'icon-yellow',
+      text: 'text-yellow'
     },
     blue: {
-      bg: 'bg-blue-50',
-      icon: 'bg-blue-100 text-blue-600',
-      text: 'text-blue-900'
+      bg: 'color-blue',
+      icon: 'icon-blue',
+      text: 'text-blue'
     }
   };
   return colors[color as keyof typeof colors] || colors.blue;
@@ -110,57 +110,95 @@ function getColorClasses(color: string) {
 
 <style>
   .balance-summary {
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
   }
 
   .summary-header {
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
   }
 
   .summary-header h2 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #111827;
-    margin-bottom: 0.25rem;
+    font-size: 1.875rem;
+    font-weight: 800;
+    color: #0a1628;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
   }
 
   .summary-subtitle {
-    font-size: 0.875rem;
-    color: #6b7280;
+    font-size: 0.9375rem;
+    color: #64748b;
+    font-weight: 400;
   }
 
   .balance-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
   }
 
   .balance-card {
-    border-radius: 0.75rem;
-    padding: 1.5rem;
+    border-radius: 1.25rem;
+    padding: 1.75rem;
     display: flex;
-    gap: 1rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    gap: 1.25rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+  }
+
+  .balance-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--card-color) 0%, var(--card-color-light) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
 
   .balance-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
+  }
+
+  .balance-card:hover::before {
+    opacity: 1;
   }
 
   .card-icon {
     flex-shrink: 0;
-    width: 3rem;
-    height: 3rem;
-    border-radius: 0.5rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+  }
+
+  .card-icon::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 1rem;
+    background: var(--card-color);
+    opacity: 0.15;
+    transition: opacity 0.3s ease;
+  }
+
+  .balance-card:hover .card-icon::after {
+    opacity: 0.25;
   }
 
   .card-icon svg {
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    position: relative;
+    z-index: 1;
   }
 
   .card-content {
@@ -169,27 +207,74 @@ function getColorClasses(color: string) {
   }
 
   .card-title {
-    font-size: 0.875rem;
-    font-weight: 500;
-    margin-bottom: 0.25rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.9;
   }
 
   .card-amount {
-    font-size: 1.25rem;
-    font-weight: 700;
-    margin-bottom: 0.25rem;
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
     word-break: break-word;
+    letter-spacing: -0.02em;
+    font-family: var(--font-display);
   }
 
   .card-description {
-    font-size: 0.75rem;
-    color: #6b7280;
-    line-height: 1.4;
+    font-size: 0.8125rem;
+    color: #64748b;
+    line-height: 1.5;
+    font-weight: 400;
   }
+
+  /* Color variants */
+  .color-purple {
+    --card-color: #9333ea;
+    --card-color-light: #a855f7;
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+  }
+  .color-purple .card-icon { color: #9333ea; background: #f3e8ff; }
+  .color-purple .card-title { color: #7c3aed; }
+  .color-purple .card-amount { color: #6b21a8; }
+
+  .color-green {
+    --card-color: #10b981;
+    --card-color-light: #34d399;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  }
+  .color-green .card-icon { color: #10b981; background: #d1fae5; }
+  .color-green .card-title { color: #059669; }
+  .color-green .card-amount { color: #047857; }
+
+  .color-yellow {
+    --card-color: #f59e0b;
+    --card-color-light: #fbbf24;
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  }
+  .color-yellow .card-icon { color: #f59e0b; background: #fef3c7; }
+  .color-yellow .card-title { color: #d97706; }
+  .color-yellow .card-amount { color: #b45309; }
+
+  .color-blue {
+    --card-color: #0ea5e9;
+    --card-color-light: #38bdf8;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  }
+  .color-blue .card-icon { color: #0ea5e9; background: #e0f2fe; }
+  .color-blue .card-title { color: #0284c7; }
+  .color-blue .card-amount { color: #0369a1; }
 
   @media (max-width: 768px) {
     .balance-cards {
       grid-template-columns: 1fr;
+    }
+
+    .summary-header h2 {
+      font-size: 1.5rem;
     }
   }
 </style>
