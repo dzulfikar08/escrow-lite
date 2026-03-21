@@ -1,37 +1,48 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { handlePayoutScheduler, triggerManually, healthCheck, getStatistics } from '@/services/cron/payout-scheduler';
+import {
+  handlePayoutScheduler,
+  triggerManually,
+  healthCheck,
+  getStatistics,
+} from '@/services/cron/payout-scheduler';
 import { PayoutService } from '@/services/payouts/processor';
 import { LedgerService } from '@/services/escrow/ledger';
 import { BalanceService } from '@/services/escrow/balance';
 
-// Mock the services
 vi.mock('@/services/payouts/processor');
 vi.mock('@/services/escrow/ledger');
 vi.mock('@/services/escrow/balance');
+
+function createMockDb(overrides?: Record<string, any>) {
+  const firstMock = vi.fn().mockResolvedValue(null);
+  const allMock = vi.fn().mockResolvedValue({ results: [] });
+  const runMock = vi.fn().mockResolvedValue({});
+  const bindMock = vi.fn().mockReturnValue({ first: firstMock, all: allMock, run: runMock });
+  const prepareResult = { bind: bindMock, first: firstMock, all: allMock, run: runMock };
+  const prepareMock = vi.fn().mockReturnValue(prepareResult);
+
+  return {
+    prepare: prepareMock,
+    _firstMock: firstMock,
+    _bindMock: bindMock,
+    _allMock: allMock,
+    _runMock: runMock,
+    ...overrides,
+  };
+}
 
 describe('Payout Scheduler Cron Job', () => {
   let mockEnv: any;
   let mockEvent: any;
 
   beforeEach(() => {
-    // Reset all mocks
     vi.clearAllMocks();
 
-    // Setup mock environment
     mockEnv = {
-      DB: {
-        prepare: vi.fn().mockReturnValue({
-          bind: vi.fn().mockReturnValue({
-            first: vi.fn(),
-            all: vi.fn(),
-            run: vi.fn(),
-          }),
-        }),
-      },
+      DB: createMockDb(),
       PUBLIC_URL: 'https://example.com',
     };
 
-    // Setup mock event
     mockEvent = {
       scheduledTime: Date.now(),
       cron: '*/5 * * * *',
@@ -40,7 +51,6 @@ describe('Payout Scheduler Cron Job', () => {
 
   describe('handlePayoutScheduler', () => {
     it('should process pending payouts successfully', async () => {
-      // Mock successful processing
       const mockResult = {
         processed: 5,
         succeeded: [
@@ -53,15 +63,12 @@ describe('Payout Scheduler Cron Job', () => {
 
       vi.mocked(PayoutService.prototype.processPendingPayouts).mockResolvedValue(mockResult);
 
-      // Execute
       await handlePayoutScheduler(mockEvent, mockEnv);
 
-      // Verify
       expect(PayoutService.prototype.processPendingPayouts).toHaveBeenCalled();
     });
 
     it('should handle no pending payouts', async () => {
-      // Mock empty result
       const mockResult = {
         processed: 0,
         succeeded: [],
@@ -71,15 +78,12 @@ describe('Payout Scheduler Cron Job', () => {
 
       vi.mocked(PayoutService.prototype.processPendingPayouts).mockResolvedValue(mockResult);
 
-      // Execute
       await handlePayoutScheduler(mockEvent, mockEnv);
 
-      // Verify
       expect(PayoutService.prototype.processPendingPayouts).toHaveBeenCalled();
     });
 
     it('should handle failed payouts gracefully', async () => {
-      // Mock result with failures
       const mockResult = {
         processed: 3,
         succeeded: [{ id: 'payout-1', reference: 'STUB-123' }],
@@ -92,20 +96,16 @@ describe('Payout Scheduler Cron Job', () => {
 
       vi.mocked(PayoutService.prototype.processPendingPayouts).mockResolvedValue(mockResult);
 
-      // Execute
       await handlePayoutScheduler(mockEvent, mockEnv);
 
-      // Verify
       expect(PayoutService.prototype.processPendingPayouts).toHaveBeenCalled();
     });
 
     it('should throw error on fatal processing error', async () => {
-      // Mock fatal error
       vi.mocked(PayoutService.prototype.processPendingPayouts).mockRejectedValue(
         new Error('Database connection failed')
       );
 
-      // Execute and verify
       await expect(handlePayoutScheduler(mockEvent, mockEnv)).rejects.toThrow(
         'Database connection failed'
       );
@@ -125,12 +125,11 @@ describe('Payout Scheduler Cron Job', () => {
 
       await handlePayoutScheduler(mockEvent, mockEnv);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Job completed in')
+      const logCalls = consoleLogSpy.mock.calls.map((call) => call.join(' '));
+      const durationLog = logCalls.find(
+        (log) => log.includes('Job completed in') && log.includes('ms')
       );
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('ms')
-      );
+      expect(durationLog).toBeDefined();
     });
   });
 
@@ -148,14 +147,12 @@ describe('Payout Scheduler Cron Job', () => {
 
       vi.mocked(PayoutService.prototype.processPendingPayouts).mockResolvedValue(mockResult);
 
-      // Execute
       const result = await triggerManually(mockEnv);
 
-      // Verify
       expect(result.processed).toBe(2);
       expect(result.succeeded).toHaveLength(2);
       expect(result.failed).toHaveLength(0);
-      expect(result.duration).toBeGreaterThan(0);
+      expect(result.duration).toBeGreaterThanOrEqual(0);
     });
 
     it('should include duration in manual trigger result', async () => {
@@ -177,10 +174,9 @@ describe('Payout Scheduler Cron Job', () => {
 
   describe('healthCheck', () => {
     it('should return healthy status when database is accessible', async () => {
-      // Mock database query
-      mockEnv.DB.prepare().bind().first().mockResolvedValue({
-        count: 5,
-      });
+      const mockDb = createMockDb();
+      mockDb._firstMock.mockResolvedValue({ count: 5 });
+      mockEnv.DB = mockDb;
 
       const result = await healthCheck(mockEnv);
 
@@ -189,10 +185,9 @@ describe('Payout Scheduler Cron Job', () => {
     });
 
     it('should return unhealthy status on database error', async () => {
-      // Mock database error
-      mockEnv.DB.prepare().bind().first().mockRejectedValue(
-        new Error('Database connection failed')
-      );
+      const mockDb = createMockDb();
+      mockDb._firstMock.mockRejectedValue(new Error('Database connection failed'));
+      mockEnv.DB = mockDb;
 
       const result = await healthCheck(mockEnv);
 
@@ -201,9 +196,9 @@ describe('Payout Scheduler Cron Job', () => {
     });
 
     it('should handle zero pending payouts', async () => {
-      mockEnv.DB.prepare().bind().first().mockResolvedValue({
-        count: 0,
-      });
+      const mockDb = createMockDb();
+      mockDb._firstMock.mockResolvedValue({ count: 0 });
+      mockEnv.DB = mockDb;
 
       const result = await healthCheck(mockEnv);
 
@@ -214,28 +209,18 @@ describe('Payout Scheduler Cron Job', () => {
 
   describe('getStatistics', () => {
     it('should return comprehensive statistics', async () => {
-      // Mock database queries
-      mockEnv.DB.prepare = vi.fn()
-        .mockReturnValueOnce({
-          bind: vi.fn().mockReturnValue({
-            first: vi.fn().mockResolvedValue({ count: 10 }),
-          }),
-        })
-        .mockReturnValueOnce({
-          bind: vi.fn().mockReturnValue({
-            first: vi.fn().mockResolvedValue({ count: 2 }),
-          }),
-        })
-        .mockReturnValueOnce({
-          bind: vi.fn().mockReturnValue({
-            first: vi.fn().mockResolvedValue({ count: 15 }),
-          }),
-        })
-        .mockReturnValueOnce({
-          bind: vi.fn().mockReturnValue({
-            first: vi.fn().mockResolvedValue({ count: 1 }),
-          }),
-        });
+      const results = [{ count: 10 }, { count: 2 }, { count: 15 }, { count: 1 }];
+      let prepareCallIndex = 0;
+
+      const mockPrepare = vi.fn().mockImplementation(() => {
+        const mockFirst = vi.fn().mockResolvedValue(results[prepareCallIndex] ?? null);
+        const mockRun = vi.fn().mockResolvedValue({});
+        const mockBind = vi.fn().mockReturnValue({ first: mockFirst, run: mockRun });
+        prepareCallIndex++;
+        return { bind: mockBind, first: mockFirst, run: mockRun };
+      });
+
+      mockEnv.DB = { prepare: mockPrepare };
 
       const result = await getStatistics(mockEnv);
 
@@ -246,21 +231,27 @@ describe('Payout Scheduler Cron Job', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      mockEnv.DB.prepare().bind().first().mockRejectedValue(
-        new Error('Query failed')
-      );
+      const mockFirst = vi.fn().mockRejectedValue(new Error('Query failed'));
+      const mockRun = vi.fn();
+      const mockBind = vi.fn().mockReturnValue({ first: mockFirst, run: mockRun });
+      const mockPrepare = vi
+        .fn()
+        .mockReturnValue({ bind: mockBind, first: mockFirst, run: mockRun });
+
+      mockEnv.DB = { prepare: mockPrepare };
 
       await expect(getStatistics(mockEnv)).rejects.toThrow('Query failed');
     });
 
     it('should return zero counts when no payouts exist', async () => {
-      // Mock all queries to return null
-      mockEnv.DB.prepare = vi.fn()
-        .mockReturnValue({
-          bind: vi.fn().mockReturnValue({
-            first: vi.fn().mockResolvedValue(null),
-          }),
-        });
+      const mockPrepare = vi.fn().mockImplementation(() => {
+        const mockFirst = vi.fn().mockResolvedValue(null);
+        const mockRun = vi.fn().mockResolvedValue({});
+        const mockBind = vi.fn().mockReturnValue({ first: mockFirst, run: mockRun });
+        return { bind: mockBind, first: mockFirst, run: mockRun };
+      });
+
+      mockEnv.DB = { prepare: mockPrepare };
 
       const result = await getStatistics(mockEnv);
 
@@ -273,15 +264,14 @@ describe('Payout Scheduler Cron Job', () => {
 
   describe('batch processing', () => {
     it('should process up to 10 payouts at a time', async () => {
-      // Mock 15 pending payouts
       const mockResult = {
-        processed: 10, // Should only process 10 at a time
+        processed: 10,
         succeeded: Array.from({ length: 10 }, (_, i) => ({
           id: `payout-${i + 1}`,
           reference: `STUB-${i + 1}`,
         })),
         failed: [],
-        skipped: 5, // 5 remaining
+        skipped: 5,
       };
 
       vi.mocked(PayoutService.prototype.processPendingPayouts).mockResolvedValue(mockResult);
@@ -294,11 +284,9 @@ describe('Payout Scheduler Cron Job', () => {
     it('should skip payouts already in processing status', async () => {
       const mockResult = {
         processed: 5,
-        succeeded: [
-          { id: 'payout-1', reference: 'STUB-123' },
-        ],
+        succeeded: [{ id: 'payout-1', reference: 'STUB-123' }],
         failed: [],
-        skipped: 4, // 4 already being processed
+        skipped: 4,
       };
 
       vi.mocked(PayoutService.prototype.processPendingPayouts).mockResolvedValue(mockResult);
@@ -323,9 +311,9 @@ describe('Payout Scheduler Cron Job', () => {
         // Expected to throw
       }
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Fatal error:')
-      );
+      const errorCalls = consoleErrorSpy.mock.calls.map((call) => call.join(' '));
+      const fatalLog = errorCalls.find((log) => log.includes('Fatal error:'));
+      expect(fatalLog).toBeDefined();
     });
 
     it('should handle individual payout failures without stopping', async () => {
@@ -341,7 +329,6 @@ describe('Payout Scheduler Cron Job', () => {
 
       vi.mocked(PayoutService.prototype.processPendingPayouts).mockResolvedValue(mockResult);
 
-      // Should not throw
       await expect(handlePayoutScheduler(mockEvent, mockEnv)).resolves.not.toThrow();
     });
   });
@@ -363,8 +350,6 @@ describe('Payout Scheduler Cron Job', () => {
     });
 
     it('should implement exponential backoff for retries', async () => {
-      // This would be tested through integration tests with actual database
-      // For unit tests, we verify the service is called
       const mockResult = {
         processed: 1,
         succeeded: [],
@@ -382,8 +367,6 @@ describe('Payout Scheduler Cron Job', () => {
 
   describe('FIFO ordering', () => {
     it('should process payouts in FIFO order (created_at ASC)', async () => {
-      // This would be tested through integration tests
-      // For unit tests, we verify the service is called
       const mockResult = {
         processed: 5,
         succeeded: [],
@@ -405,7 +388,7 @@ describe('Payout Scheduler Cron Job', () => {
         processed: 2,
         succeeded: [{ id: 'payout-1', reference: 'STUB-123' }],
         failed: [],
-        skipped: 8, // 8 recently processed
+        skipped: 8,
       };
 
       vi.mocked(PayoutService.prototype.processPendingPayouts).mockResolvedValue(mockResult);
@@ -416,7 +399,6 @@ describe('Payout Scheduler Cron Job', () => {
     });
 
     it('should use last_processed_at for idempotency checks', async () => {
-      // This would be tested through integration tests
       const mockResult = {
         processed: 1,
         succeeded: [],

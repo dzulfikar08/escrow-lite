@@ -51,6 +51,29 @@ export enum Gateway {
   DOKU = 'doku',
 }
 
+export type TransactionStatusValue =
+  | 'pending'
+  | 'funded'
+  | 'held'
+  | 'released'
+  | 'disputed'
+  | 'refunded'
+  | 'expired'
+  | 'paid_out'
+  | 'resolved';
+
+export type KycTierValue = 'none' | 'basic' | 'full';
+export type ReleaseReasonValue = 'buyer_confirmed' | 'timeout' | 'admin_override';
+export type DisputeReasonValue =
+  | 'not_received'
+  | 'not_as_described'
+  | 'damaged'
+  | 'wrong_item'
+  | 'other';
+export type GatewayValue = 'midtrans' | 'xendit' | 'doku';
+export type LedgerDirectionValue = 'credit' | 'debit' | 'in' | 'out';
+export type TimestampValue = string | Date;
+
 /**
  * Seller entity with KYC verification and balances
  */
@@ -60,15 +83,15 @@ export interface Seller {
   name: string;
   email: string;
   phone: string;
-  kyc_tier: KycTier;
-  kyc_verified_at?: Date;
+  kyc_tier: KycTierValue;
+  kyc_verified_at?: TimestampValue;
   webhook_url?: string;
   max_transaction_amount?: number;
   max_held_balance?: number;
   metadata?: Record<string, unknown>;
   version: number; // For optimistic locking
-  created_at: Date;
-  updated_at: Date;
+  created_at: TimestampValue;
+  updated_at: TimestampValue;
 }
 
 /**
@@ -83,21 +106,21 @@ export interface Transaction {
   fee_rate: number; // Fee rate applied (e.g., 0.01 for 1%)
   fee_amount: number; // Calculated fee
   net_amount: number; // amount - fee_amount
-  gateway: Gateway;
+  gateway: GatewayValue;
   gateway_transaction_id?: string; // External payment reference
-  status: TransactionStatus;
+  status: TransactionStatusValue;
   auto_release_days?: number; // Days before auto-release
-  auto_release_at?: Date; // Calculated auto-release timestamp
-  absolute_expire_at?: Date; // Absolute timeout (14 days)
-  shipped_at?: Date; // When seller marked as shipped
-  release_reason?: ReleaseReason;
-  refunded_at?: Date;
+  auto_release_at?: TimestampValue; // Calculated auto-release timestamp
+  absolute_expire_at?: TimestampValue; // Absolute timeout (14 days)
+  shipped_at?: TimestampValue; // When seller marked as shipped
+  release_reason?: ReleaseReasonValue;
+  refunded_at?: TimestampValue;
   refund_reason?: string;
   metadata?: Record<string, unknown>;
-  last_checked_at?: Date; // For timeout idempotency
-  created_at: Date;
-  updated_at: Date;
-  released_at?: Date;
+  last_checked_at?: TimestampValue; // For timeout idempotency
+  created_at: TimestampValue;
+  updated_at: TimestampValue;
+  released_at?: TimestampValue;
 }
 
 /**
@@ -109,12 +132,14 @@ export interface LedgerEntry {
   transaction_id?: string; // Optional for adjustments
   payout_id?: string; // Optional for payout entries
   type: 'hold' | 'release' | 'fee' | 'payout' | 'refund' | 'adjustment';
-  direction: 'credit' | 'debit'; // Credit = increase balance, Debit = decrease balance
+  direction: LedgerDirectionValue; // Credit = increase balance, Debit = decrease balance
   amount: number;
+  balance_before?: number; // Legacy compatibility for some tests/consumers
   balance_after: number; // Running balance after this entry
+  description?: string; // Legacy compatibility alias for note
   note?: string; // Description of the entry
   metadata?: Record<string, unknown>; // Additional context
-  created_at: Date;
+  created_at: TimestampValue;
 }
 
 /**
@@ -130,10 +155,10 @@ export interface Payout {
   account_name: string; // Account holder name
   disbursement_ref?: string; // External disbursement reference
   failed_reason?: string;
-  requested_at: Date;
-  completed_at?: Date;
-  created_at: Date;
-  updated_at: Date;
+  requested_at: TimestampValue;
+  completed_at?: TimestampValue;
+  created_at: TimestampValue;
+  updated_at: TimestampValue;
 }
 
 /**
@@ -142,16 +167,16 @@ export interface Payout {
 export interface Dispute {
   id: string;
   transaction_id: string;
-  reason: DisputeReason;
+  reason: DisputeReasonValue;
   description?: string;
   status: 'open' | 'investigating' | 'resolved' | 'closed';
   resolution?: string;
   resolved_for?: 'buyer' | 'seller'; // Who won the dispute
   admin_notes?: string;
   evidence_count?: number; // Number of evidence files
-  created_at: Date;
-  updated_at: Date;
-  resolved_at?: Date;
+  created_at: TimestampValue;
+  updated_at: TimestampValue;
+  resolved_at?: TimestampValue;
 }
 
 /**

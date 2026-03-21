@@ -8,6 +8,7 @@
  */
 
 import { BankAccountService } from '@/services/bank-accounts/service';
+import type { IndonesianBankCode } from '@/services/bank-accounts/types';
 import { handleError } from '@/lib/errors';
 import { createApiResponse } from '@/lib/response';
 import { AuthenticationError } from '@/lib/errors';
@@ -40,8 +41,7 @@ export const prerender = false;
  */
 export const GET: APIRoute = async ({ locals }) => {
   try {
-    // Get DB from runtime
-    const db = (locals.runtime as { env: { DB: D1Database } }).env.DB;
+    const db = locals.runtime?.env.DB;
     if (!db) {
       return createApiResponse(
         {
@@ -111,8 +111,7 @@ export const GET: APIRoute = async ({ locals }) => {
  */
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
-    // Get DB from runtime
-    const db = (locals.runtime as { env: { DB: D1Database } }).env.DB;
+    const db = locals.runtime?.env.DB;
     if (!db) {
       return createApiResponse(
         {
@@ -139,7 +138,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const sellerId = session.user.id;
 
     // Parse request body
-    const body = await request.json();
+    const body = await request.json() as {
+      bank_code?: string;
+      account_number?: string;
+      account_name?: string;
+    };
     const { bank_code, account_number, account_name } = body;
 
     // Validate required fields
@@ -161,7 +164,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Add bank account
     const account = await bankAccountService.addBankAccount(
       sellerId,
-      bank_code,
+      bank_code as IndonesianBankCode,
       account_number.trim(),
       account_name.trim()
     );

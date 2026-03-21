@@ -25,7 +25,10 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     }
 
     // Parse request body
-    const body = await request.json();
+    const body = await request.json() as {
+      seller_id?: string;
+      response?: string;
+    };
     const { seller_id, response } = body;
 
     // Validate required fields
@@ -42,7 +45,10 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     }
 
     // Initialize services
-    const db = (locals.runtime as { env: { DB: D1Database } }).env.DB;
+    const db = locals.runtime?.env.DB;
+    if (!db) {
+      return createApiResponse({ error: 'Database not available' }, 500);
+    }
     const engine = new EscrowEngine(db);
     const ledger = new LedgerService(db);
     const disputeService = new DisputeService(db, engine, ledger);
@@ -73,7 +79,10 @@ export const GET: APIRoute = async ({ params, locals }) => {
     }
 
     // Initialize services
-    const db = (locals.runtime as { env: { DB: D1Database } }).env.DB;
+    const db = locals.runtime?.env.DB;
+    if (!db) {
+      return createApiResponse({ error: 'Database not available' }, 500);
+    }
     const engine = new EscrowEngine(db);
     const ledger = new LedgerService(db);
     const disputeService = new DisputeService(db, engine, ledger);

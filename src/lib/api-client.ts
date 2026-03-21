@@ -121,7 +121,7 @@ export async function fetchTransactions(
     throw new Error(`Failed to fetch transactions: ${response.statusText}`);
   }
 
-  const result = await response.json();
+  const result = await response.json() as { data: TransactionListResponse };
   return result.data;
 }
 
@@ -135,7 +135,7 @@ export async function fetchTransaction(id: string): Promise<TransactionDetailRes
     throw new Error(`Failed to fetch transaction: ${response.statusText}`);
   }
 
-  const result = await response.json();
+  const result = await response.json() as { data: TransactionDetailResponse };
   return result.data;
 }
 
@@ -155,11 +155,11 @@ export async function markAsShipped(
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json() as { error?: { message?: string } };
     throw new Error(error.error?.message || 'Failed to mark as shipped');
   }
 
-  const result = await response.json();
+  const result = await response.json() as { data: Transaction };
   return result.data;
 }
 
@@ -249,7 +249,7 @@ export async function fetchSellerBalances(): Promise<SellerBalances> {
     throw new Error(`Failed to fetch balances: ${response.statusText}`);
   }
 
-  const result = await response.json();
+  const result = await response.json() as { data: SellerBalances };
   return result.data;
 }
 
@@ -263,7 +263,7 @@ export async function fetchBankAccounts(): Promise<BankAccount[]> {
     throw new Error(`Failed to fetch bank accounts: ${response.statusText}`);
   }
 
-  const result = await response.json();
+  const result = await response.json() as { data: BankAccount[] };
   return result.data;
 }
 
@@ -277,7 +277,7 @@ export async function fetchPayoutHistory(): Promise<Payout[]> {
     throw new Error(`Failed to fetch payout history: ${response.statusText}`);
   }
 
-  const result = await response.json();
+  const result = await response.json() as { data: Payout[] };
   return result.data;
 }
 
@@ -298,10 +298,10 @@ export async function createPayoutRequest(params: {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json() as { error?: { message?: string } };
     throw new Error(error.error?.message || 'Failed to create payout request');
   }
 
-  const result = await response.json();
+  const result = await response.json() as { data: Payout };
   return result.data;
 }

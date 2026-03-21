@@ -1,33 +1,41 @@
 import type { APIRoute } from 'astro';
 import { getAuth } from '@/lib/auth';
 import { AppError, handleError } from '@/lib/errors';
+import { jsonResponse } from '@/lib/response';
 
 export const prerender = false;
 
 export const POST: APIRoute = async (context) => {
   try {
-    // Get DB from runtime
-    const db = context.locals.runtime?.env.DB;
+    const env = context.locals.runtime?.env as {
+      DB?: D1Database;
+      BETTER_AUTH_SECRET?: string;
+    } | undefined;
+    const db = env?.DB;
     if (!db) {
       throw new AppError('Database not available', 500, 'INTERNAL_ERROR');
     }
 
-    // Get auth instance with DB and secret
-    const secret = context.locals.runtime?.env?.BETTER_AUTH_SECRET as string;
+    const secret = env?.BETTER_AUTH_SECRET as string;
     const auth = getAuth(db, secret);
-
-    // Sign out user (clears session cookie)
-    await auth.api.signOut({
+    const authResponse = await auth.api.signOut({
       headers: context.request.headers,
-    });
+    }) as { headers?: Headers };
 
-    // Return 204 No Content
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Content-Type': 'application/json',
+    const response = jsonResponse(
+      {
+        success: true,
       },
-    });
+      200
+    );
+
+    if (authResponse?.headers) {
+      authResponse.headers.getSetCookie().forEach((value) => {
+        response.headers.append('Set-Cookie', value);
+      });
+    }
+
+    return response;
   } catch (error) {
     return handleError(error);
   }

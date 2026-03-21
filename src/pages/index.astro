@@ -1,4 +1,315 @@
 ---
+import Layout from '@/layouts/Layout.astro';
+
 export const prerender = false;
-return Astro.redirect('/dashboard');
+
+const session = Astro.locals.session;
+
+const heroLink = session ? '/dashboard' : '/register';
+const heroLabel = session ? 'Buka Dashboard' : 'Mulai Gratis';
+
+const highlights = [
+  {
+    title: 'Escrow yang cepat dipahami',
+    description: 'Alur transaksi, saldo, dan payout ditata untuk seller Indonesia tanpa dashboard yang membingungkan.',
+  },
+  {
+    title: 'Kontrol payout lebih rapi',
+    description: 'Dana tersedia, payout berjalan, dan rekening bank utama bisa dipantau dari satu tempat.',
+  },
+  {
+    title: 'Operasional lebih aman',
+    description: 'Webhook, dispute, dan auto-release sudah disiapkan agar flow transaksi tetap jalan saat volume naik.',
+  },
+];
+
+const steps = [
+  'Daftar dan simpan rekening payout utama Anda.',
+  'Buat transaksi escrow dan kirimkan ke pembeli.',
+  'Pantau status dana sampai dilepas atau masuk proses sengketa.',
+];
 ---
+
+<Layout title="Escrow Lite">
+  <main class="home-page">
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow">Escrow untuk seller digital</span>
+        <h1>Kelola pembayaran aman, payout rapi, dan transaksi tetap enak dilihat.</h1>
+        <p>
+          Escrow Lite membantu seller memisahkan dana tertahan, dana siap cair, dan riwayat transaksi
+          tanpa UI yang terasa berat.
+        </p>
+
+        <div class="hero-actions">
+          <a href={heroLink} class="btn btn-primary">{heroLabel}</a>
+          <a href={session ? '/dashboard/settings' : '/login'} class="btn btn-secondary">
+            {session ? 'Atur Rekening' : 'Masuk'}
+          </a>
+        </div>
+      </div>
+
+      <div class="hero-panel">
+        <div class="panel-shell">
+          <div class="panel-card panel-card-primary">
+            <span class="panel-label">Saldo tersedia</span>
+            <strong>Rp 8.250.000</strong>
+            <span class="panel-note">Siap dicairkan ke rekening utama</span>
+          </div>
+          <div class="panel-card">
+            <span class="panel-label">Transaksi aktif</span>
+            <strong>27</strong>
+            <span class="panel-note">Termasuk held, disputed, dan pending release</span>
+          </div>
+          <div class="panel-card panel-card-accent">
+            <span class="panel-label">Payout status</span>
+            <strong>Diproses</strong>
+            <span class="panel-note">Estimasi selesai hari ini</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="highlights">
+      {highlights.map((item) => (
+        <article class="highlight-card">
+          <h2>{item.title}</h2>
+          <p>{item.description}</p>
+        </article>
+      ))}
+    </section>
+
+    <section class="workflow">
+      <div class="workflow-copy">
+        <span class="eyebrow">Alur utama</span>
+        <h2>Seller flow yang harus bekerja tiap hari.</h2>
+      </div>
+
+      <ol class="workflow-list">
+        {steps.map((step, index) => (
+          <li class="workflow-item">
+            <span class="workflow-number">0{index + 1}</span>
+            <p>{step}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .home-page {
+    min-height: 100vh;
+    padding: 2rem;
+    background:
+      radial-gradient(circle at top left, rgba(16, 185, 129, 0.18), transparent 28%),
+      radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.12), transparent 24%),
+      linear-gradient(180deg, #f8fbff 0%, #eef4f2 100%);
+  }
+
+  .hero,
+  .highlights,
+  .workflow {
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+    gap: 2rem;
+    align-items: center;
+    padding: 3rem 0 2.5rem;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    padding: 0.45rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(10, 22, 40, 0.08);
+    color: #0f5132;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .hero-copy h1 {
+    margin-top: 1rem;
+    font-size: clamp(2.75rem, 5vw, 4.6rem);
+    line-height: 0.98;
+    max-width: 12ch;
+  }
+
+  .hero-copy p {
+    margin-top: 1.25rem;
+    max-width: 58ch;
+    font-size: 1.05rem;
+    color: #475569;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 0.9rem;
+    margin-top: 1.75rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0.8rem 1.25rem;
+    border-radius: 999px;
+    font-weight: 700;
+    border: 1px solid transparent;
+  }
+
+  .btn-primary {
+    color: #fff;
+    background: linear-gradient(135deg, #0a1628 0%, #123b52 100%);
+    box-shadow: 0 20px 40px -24px rgba(10, 22, 40, 0.8);
+  }
+
+  .btn-secondary {
+    background: rgba(255, 255, 255, 0.75);
+    border-color: rgba(10, 22, 40, 0.12);
+  }
+
+  .hero-panel {
+    position: relative;
+  }
+
+  .panel-shell {
+    display: grid;
+    gap: 1rem;
+    padding: 1.2rem;
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 28px 60px -40px rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(18px);
+  }
+
+  .panel-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 1.25rem;
+    border-radius: 22px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+  }
+
+  .panel-card-primary {
+    background: linear-gradient(135deg, #0a1628 0%, #1d4d4f 100%);
+    color: #fff;
+    border-color: transparent;
+  }
+
+  .panel-card-accent {
+    background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+  }
+
+  .panel-label,
+  .panel-note {
+    font-size: 0.9rem;
+  }
+
+  .panel-card strong {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+  }
+
+  .panel-note {
+    color: #64748b;
+  }
+
+  .panel-card-primary .panel-note,
+  .panel-card-primary .panel-label {
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  .highlights {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .highlight-card,
+  .workflow {
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 18px 45px -36px rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(10px);
+  }
+
+  .highlight-card {
+    padding: 1.4rem;
+    border-radius: 22px;
+  }
+
+  .highlight-card h2 {
+    font-size: 1.2rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .highlight-card p,
+  .workflow-item p {
+    color: #475569;
+  }
+
+  .workflow {
+    margin-top: 1.5rem;
+    border-radius: 30px;
+    padding: 1.5rem;
+  }
+
+  .workflow-copy h2 {
+    margin-top: 0.9rem;
+    font-size: 2rem;
+  }
+
+  .workflow-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0 0;
+  }
+
+  .workflow-item {
+    padding: 1.2rem;
+    border-radius: 22px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+  }
+
+  .workflow-number {
+    display: inline-flex;
+    margin-bottom: 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #0f766e;
+  }
+
+  @media (max-width: 900px) {
+    .hero,
+    .highlights,
+    .workflow-list {
+      grid-template-columns: 1fr;
+    }
+
+    .home-page {
+      padding: 1.25rem;
+    }
+
+    .hero {
+      padding-top: 1.5rem;
+    }
+  }
+</style>

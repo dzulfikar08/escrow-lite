@@ -184,7 +184,7 @@ export class BadgeRenderer {
       icon.setAttribute('stroke-width', '2');
       icon.setAttribute('stroke-linecap', 'round');
       icon.setAttribute('stroke-linejoin', 'round');
-      icon.className = 'el-badge-verified-icon';
+      icon.setAttribute('class', 'el-badge-verified-icon');
 
       const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       circle.setAttribute('cx', '12');

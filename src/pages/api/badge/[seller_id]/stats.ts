@@ -32,6 +32,10 @@ export const GET: APIRoute = async ({ params, locals }) => {
     }
 
     // Get database connection
+    if (!locals.runtime) {
+      throw new Error('Runtime environment not available');
+    }
+
     const db = getDb(locals.runtime.env);
 
     // Calculate seller statistics

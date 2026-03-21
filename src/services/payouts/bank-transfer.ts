@@ -37,6 +37,30 @@ export interface BankTransferResult {
   error?: string;
 }
 
+const DEFAULT_PROCESSING_DELAY_MS = 1000;
+
+function getProcessingDelayMs(): number {
+  const override = (
+    globalThis as typeof globalThis & {
+      __BANK_TRANSFER_DELAY_MS__?: number;
+    }
+  ).__BANK_TRANSFER_DELAY_MS__;
+
+  return typeof override === 'number' && override >= 0
+    ? override
+    : DEFAULT_PROCESSING_DELAY_MS;
+}
+
+function getRandomValue(): number {
+  const override = (
+    globalThis as typeof globalThis & {
+      __BANK_TRANSFER_RANDOM__?: () => number;
+    }
+  ).__BANK_TRANSFER_RANDOM__;
+
+  return typeof override === 'function' ? override() : Math.random();
+}
+
 /**
  * Bank codes supported by the system
  */
@@ -111,12 +135,12 @@ export async function initiateBankTransfer(
     };
   }
 
-  // Simulate processing delay (1 second)
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  // Simulate processing delay while still allowing fast test execution.
+  await new Promise((resolve) => setTimeout(resolve, getProcessingDelayMs()));
 
   // Simulate 95% success rate
   // In production, this would call actual bank API
-  const isSuccess = Math.random() > 0.05;
+  const isSuccess = getRandomValue() > 0.05;
 
   if (isSuccess) {
     // Generate stub reference

@@ -230,7 +230,7 @@ export class DisputeService {
         status: dispute.tx_status as string,
         created_at: dispute.tx_created_at as string,
       },
-      evidence: evidenceResult.results as DisputeEvidence[],
+      evidence: (evidenceResult.results as unknown) as DisputeEvidence[],
     };
   }
 

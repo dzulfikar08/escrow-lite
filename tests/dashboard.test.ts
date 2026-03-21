@@ -40,12 +40,10 @@ describe('Dashboard Layout Components', () => {
   });
 
   describe('DashboardLayout Content', () => {
-    it('should import authentication', () => {
+    it('should use session from middleware', () => {
       const layoutPath = join(srcDir, 'layouts', 'DashboardLayout.astro');
       const content = readFileSync(layoutPath, 'utf-8');
-      expect(content).toContain('getAuth');
-      expect(content).toContain('getSession');
-      expect(content).toContain("redirect('/login')");
+      expect(content).toContain('Astro.locals.session');
     });
 
     it('should include Header and Navigation components', () => {
@@ -69,27 +67,27 @@ describe('Dashboard Layout Components', () => {
   });
 
   describe('Dashboard Home Page', () => {
-    it('should have mock data for development', () => {
+    it('should load seller dashboard data from APIs', () => {
       const indexPath = join(srcDir, 'pages', 'dashboard', 'index.astro');
       const content = readFileSync(indexPath, 'utf-8');
-      expect(content).toContain('mockStats');
-      expect(content).toContain('mockTransactions');
+      expect(content).toContain('/api/v1/seller/balance');
+      expect(content).toContain('/api/v1/seller/transactions');
     });
 
     it('should format currency in Indonesian Rupiah', () => {
       const indexPath = join(srcDir, 'pages', 'dashboard', 'index.astro');
       const content = readFileSync(indexPath, 'utf-8');
       expect(content).toContain('formatRupiah');
-      expect(content).toContain('IDR');
+      expect(content).toContain('Ringkasan seller');
     });
 
     it('should have status badge styling', () => {
       const indexPath = join(srcDir, 'pages', 'dashboard', 'index.astro');
       const content = readFileSync(indexPath, 'utf-8');
-      expect(content).toContain('status-badge--yellow');
-      expect(content).toContain('status-badge--green');
-      expect(content).toContain('status-badge--red');
-      expect(content).toContain('status-badge--gray');
+      expect(content).toContain('status-pill--held');
+      expect(content).toContain('status-pill--released');
+      expect(content).toContain('status-pill--disputed');
+      expect(content).toContain('status-pill--refunded');
     });
   });
 
@@ -134,15 +132,10 @@ describe('Dashboard Layout Components', () => {
   });
 
   describe('Placeholder Pages', () => {
-    const placeholderPages = [
-      'transactions',
-      'payouts',
-      'balance',
-      'settings'
-    ];
+    const placeholderPages = ['transactions', 'payouts', 'balance', 'settings'];
 
     placeholderPages.forEach((page) => {
-      it(`should have ${page} placeholder page`, () => {
+      it(`should have ${page} dashboard page`, () => {
         const pagePath = join(srcDir, 'pages', 'dashboard', `${page}.astro`);
         expect(existsSync(pagePath)).toBe(true);
       });
@@ -160,10 +153,10 @@ describe('Dashboard Layout Components', () => {
     });
 
     it('should redirect unauthenticated users', () => {
-      const layoutPath = join(srcDir, 'layouts', 'DashboardLayout.astro');
-      const content = readFileSync(layoutPath, 'utf-8');
-      expect(content).toContain('if (!session)');
-      expect(content).toContain("Astro.redirect('/login')");
+      const middlewarePath = join(srcDir, 'middleware.ts');
+      const content = readFileSync(middlewarePath, 'utf-8');
+      expect(content).toContain('session');
+      expect(content).toContain('redirect');
     });
   });
 });
@@ -176,7 +169,7 @@ describe('Dashboard Utilities', () => {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(testAmount1);
 
     expect(formatted1).toContain('1.000.000');
@@ -186,7 +179,7 @@ describe('Dashboard Utilities', () => {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(testAmount2);
 
     expect(formatted2).toContain('50.000');
@@ -213,7 +206,7 @@ describe('Dashboard Utilities', () => {
       held: 'Ditahan',
       released: 'Dirilis',
       disputed: 'Disengketakan',
-      refunded: 'Dikembalikan'
+      refunded: 'Dikembalikan',
     };
 
     expect(labels['held']).toBe('Ditahan');

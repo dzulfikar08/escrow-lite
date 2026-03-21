@@ -218,7 +218,11 @@ export const POST: APIRoute = async (context) => {
     }
 
     // Parse request body
-    const body = await context.request.json();
+    const body = await context.request.json() as {
+      action?: string;
+      errorId?: string;
+      note?: string;
+    };
     const { action, errorId, note } = body;
 
     if (!errorId || !action) {

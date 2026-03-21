@@ -10,11 +10,32 @@ interface Env {
   WEBHOOK_SIGNING_SECRET: string;
   ENCRYPTION_KEY: string;
   MIDTRANS_API_URL: string;
+  BETTER_AUTH_SECRET: string;
+  PUBLIC_URL?: string;
 }
 
 // Extend Astro's Locals interface
 declare namespace App {
   interface Locals {
-    runtime?: import('@astrojs/cloudflare').Runtime<Env>;
+    runtime?: {
+      env: Env;
+    };
+    db?: D1Database;
+    getAuth?: () => ReturnType<typeof import('@/lib/auth').getAuth>;
+    session?: {
+      user: {
+        id: string;
+        email: string;
+        name: string;
+      };
+      session: {
+        id: string;
+        expiresAt: Date;
+        token: string;
+        userId: string;
+      };
+    } | null;
+    adminUser?: import('@/lib/admin-auth').AdminUser;
+    requestId?: string;
   }
 }

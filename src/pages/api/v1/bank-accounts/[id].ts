@@ -29,9 +29,11 @@ export const prerender = false;
 export const DELETE: APIRoute = async ({ params, locals }) => {
   try {
     const accountId = params.id;
+    if (!accountId) {
+      return createApiResponse({ error: 'Bank account ID is required' }, 400);
+    }
 
-    // Get DB from runtime
-    const db = (locals.runtime as { env: { DB: D1Database } }).env.DB;
+    const db = locals.runtime?.env.DB;
     if (!db) {
       return createApiResponse(
         {

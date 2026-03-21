@@ -1,62 +1,496 @@
 ---
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { INDONESIAN_BANKS } from '@/services/bank-accounts/types';
+
+export const prerender = false;
+
+let accounts: Array<{
+  id: string;
+  bank_code: string;
+  bank_name: string;
+  masked_account_number: string;
+  account_name: string;
+  is_primary: boolean;
+}> = [];
+
+let loadError: string | null = null;
+
+try {
+  const response = await fetch(`${Astro.url.origin}/api/v1/bank-accounts`, {
+    headers: {
+      Cookie: Astro.request.headers.get('cookie') || '',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Daftar rekening gagal dimuat.');
+  }
+
+  const result = await response.json();
+  accounts = result.accounts || [];
+} catch (error) {
+  loadError = error instanceof Error ? error.message : 'Daftar rekening gagal dimuat.';
+}
+
+const bankOptions = Object.entries(INDONESIAN_BANKS).map(([code, bank]) => ({
+  code,
+  label: `${code} - ${bank.name}`,
+}));
 ---
 
 <DashboardLayout title="Pengaturan - Escrow Lite">
-  <div class="page-placeholder">
-    <div class="placeholder-content">
-      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"></circle>
-        <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"></path>
-      </svg>
-      <h2>Pengaturan</h2>
-      <p>Halaman ini sedang dalam pengembangan.</p>
-      <a href="/dashboard" class="back-link">← Kembali ke Dashboard</a>
-    </div>
+  <div class="settings-page">
+    <section class="settings-hero">
+      <div>
+        <span class="eyebrow">Payout setup</span>
+        <h1>Kelola rekening bank untuk pencairan dana.</h1>
+        <p>Simpan rekening baru, pilih rekening utama, dan hapus rekening yang tidak lagi dipakai.</p>
+      </div>
+    </section>
+
+    {loadError && <p class="error-banner">{loadError}</p>}
+
+    <section class="settings-grid">
+      <article class="settings-card">
+        <div class="card-header">
+          <div>
+            <h2>Tambah rekening baru</h2>
+            <p>Rekening pertama otomatis menjadi rekening utama.</p>
+          </div>
+        </div>
+
+        <form id="bankAccountForm" class="bank-form">
+          <label class="field">
+            <span>Bank</span>
+            <select name="bank_code" required>
+              <option value="">Pilih bank</option>
+              {bankOptions.map((bank) => (
+                <option value={bank.code}>{bank.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Nomor rekening</span>
+            <input type="text" name="account_number" required inputmode="numeric" placeholder="Masukkan nomor rekening" />
+          </label>
+
+          <label class="field">
+            <span>Nama pemilik rekening</span>
+            <input type="text" name="account_name" required placeholder="Sesuai nama rekening" />
+          </label>
+
+          <p id="bankAccountMessage" class="form-message" hidden></p>
+
+          <button type="submit" class="submit-button">
+            <span class="submit-label">Simpan Rekening</span>
+            <span class="submit-loading" hidden>Menyimpan...</span>
+          </button>
+        </form>
+      </article>
+
+      <article class="settings-card">
+        <div class="card-header">
+          <div>
+            <h2>Rekening tersimpan</h2>
+            <p>Pilih rekening utama untuk payout berikutnya.</p>
+          </div>
+        </div>
+
+        <div id="bankAccountsList" class="account-list">
+          {accounts.length === 0 ? (
+            <div class="empty-state">
+              <strong>Belum ada rekening bank.</strong>
+              <p>Tambahkan rekening pertama Anda untuk mengaktifkan payout.</p>
+            </div>
+          ) : (
+            accounts.map((account) => (
+              <article class="account-item" data-account-id={account.id}>
+                <div>
+                  <div class="account-heading">
+                    <strong>{account.bank_code}</strong>
+                    {account.is_primary && <span class="primary-badge">Utama</span>}
+                  </div>
+                  <p>{account.bank_name}</p>
+                  <p>{account.masked_account_number} a.n. {account.account_name}</p>
+                </div>
+
+                <div class="account-actions">
+                  {!account.is_primary && (
+                    <button type="button" class="ghost-button" data-action="primary" data-id={account.id}>
+                      Jadikan utama
+                    </button>
+                  )}
+                  <button type="button" class="ghost-button ghost-button-danger" data-action="delete" data-id={account.id}>
+                    Hapus
+                  </button>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      </article>
+    </section>
   </div>
 </DashboardLayout>
 
 <style>
-  .page-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 60vh;
+  .settings-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    gap: 1.5rem;
   }
 
-  .placeholder-content {
-    text-align: center;
-    color: #6b7280;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  .settings-hero,
+  .settings-card {
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    box-shadow: 0 24px 46px -40px rgba(15, 23, 42, 0.32);
+  }
+
+  .settings-hero {
+    padding: 1.75rem;
+    background:
+      radial-gradient(circle at top right, rgba(16, 185, 129, 0.15), transparent 26%),
+      linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    padding: 0.4rem 0.7rem;
+    border-radius: 999px;
+    background: #e2f7ee;
+    color: #0f766e;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .settings-hero h1 {
+    margin-top: 0.8rem;
+    font-size: clamp(2rem, 4vw, 3rem);
+  }
+
+  .settings-hero p {
+    margin-top: 0.7rem;
+    color: #64748b;
+    max-width: 62ch;
+  }
+
+  .settings-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
     gap: 1rem;
   }
 
-  .placeholder-content svg {
-    opacity: 0.4;
+  .settings-card {
+    padding: 1.4rem;
   }
 
-  .placeholder-content h2 {
-    font-size: 1.5rem;
+  .card-header h2 {
+    font-size: 1.35rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .card-header p {
+    color: #64748b;
+  }
+
+  .bank-form {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.2rem;
+  }
+
+  .field {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .field span {
+    font-size: 0.9rem;
     font-weight: 700;
-    color: #111827;
+    color: #0f172a;
+  }
+
+  .field input,
+  .field select {
+    min-height: 50px;
+    border-radius: 14px;
+    border: 1px solid #dbe4ee;
+    background: #f8fafc;
+    padding: 0.8rem 0.95rem;
+  }
+
+  .field input:focus,
+  .field select:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
+    background: white;
+  }
+
+  .submit-button,
+  .ghost-button {
+    min-height: 46px;
+    border-radius: 14px;
+    font-weight: 700;
+    border: none;
+  }
+
+  .submit-button {
+    color: white;
+    background: linear-gradient(135deg, #10b981 0%, #0f766e 100%);
+  }
+
+  .account-list {
+    display: grid;
+    gap: 0.85rem;
+    margin-top: 1.2rem;
+  }
+
+  .account-item,
+  .empty-state {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 18px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+  }
+
+  .account-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .account-item p,
+  .empty-state p {
+    margin: 0.18rem 0 0;
+    color: #64748b;
+    font-size: 0.9rem;
+  }
+
+  .primary-badge {
+    display: inline-flex;
+    padding: 0.24rem 0.6rem;
+    border-radius: 999px;
+    background: #dcfce7;
+    color: #166534;
+    font-size: 0.74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .account-actions {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .ghost-button {
+    padding: 0.75rem 0.95rem;
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+
+  .ghost-button-danger {
+    background: #fef2f2;
+    color: #b91c1c;
+  }
+
+  .form-message,
+  .error-banner {
     margin: 0;
+    padding: 0.85rem 0.95rem;
+    border-radius: 14px;
+    font-size: 0.9rem;
   }
 
-  .placeholder-content p {
-    margin: 0;
-    font-size: 0.9375rem;
+  .form-message[data-tone='error'],
+  .error-banner {
+    background: #fef2f2;
+    color: #b91c1c;
   }
 
-  .back-link {
-    color: #2563eb;
-    text-decoration: none;
-    font-weight: 500;
-    font-size: 0.875rem;
+  .form-message[data-tone='success'] {
+    background: #ecfdf5;
+    color: #047857;
   }
 
-  .back-link:hover {
-    text-decoration: underline;
+  @media (max-width: 900px) {
+    .settings-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .account-item {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .account-actions {
+      justify-content: flex-start;
+    }
   }
 </style>
+
+<script define:vars={{ initialAccounts: accounts }}>
+  const form = document.getElementById('bankAccountForm') as HTMLFormElement | null;
+  const message = document.getElementById('bankAccountMessage') as HTMLParagraphElement | null;
+  const list = document.getElementById('bankAccountsList') as HTMLDivElement | null;
+  const submitButton = form?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+  const submitLabel = submitButton?.querySelector('.submit-label') as HTMLSpanElement | null;
+  const submitLoading = submitButton?.querySelector('.submit-loading') as HTMLSpanElement | null;
+
+  let accounts = [...initialAccounts];
+
+  function renderAccounts() {
+    if (!list) return;
+
+    if (accounts.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <strong>Belum ada rekening bank.</strong>
+          <p>Tambahkan rekening pertama Anda untuk mengaktifkan payout.</p>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = accounts
+      .map(
+        (account) => `
+          <article class="account-item" data-account-id="${account.id}">
+            <div>
+              <div class="account-heading">
+                <strong>${account.bank_code}</strong>
+                ${account.is_primary ? '<span class="primary-badge">Utama</span>' : ''}
+              </div>
+              <p>${account.bank_name}</p>
+              <p>${account.masked_account_number} a.n. ${account.account_name}</p>
+            </div>
+            <div class="account-actions">
+              ${
+                account.is_primary
+                  ? ''
+                  : `<button type="button" class="ghost-button" data-action="primary" data-id="${account.id}">Jadikan utama</button>`
+              }
+              <button type="button" class="ghost-button ghost-button-danger" data-action="delete" data-id="${account.id}">Hapus</button>
+            </div>
+          </article>
+        `
+      )
+      .join('');
+  }
+
+  function setMessage(text: string, tone: 'error' | 'success') {
+    if (!message) return;
+    message.textContent = text;
+    message.dataset.tone = tone;
+    message.hidden = false;
+  }
+
+  async function reloadAccounts() {
+    const response = await fetch('/api/v1/bank-accounts');
+    const result = await response.json();
+    accounts = result.accounts || [];
+    renderAccounts();
+  }
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!form || !submitButton) return;
+
+    if (message) {
+      message.hidden = true;
+      message.textContent = '';
+      message.removeAttribute('data-tone');
+    }
+
+    submitButton.disabled = true;
+    if (submitLabel) submitLabel.hidden = true;
+    if (submitLoading) submitLoading.hidden = false;
+
+    const formData = new FormData(form);
+    const payload = {
+      bank_code: String(formData.get('bank_code') || ''),
+      account_number: String(formData.get('account_number') || '').replace(/\s+/g, ''),
+      account_name: String(formData.get('account_name') || ''),
+    };
+
+    try {
+      const response = await fetch('/api/v1/bank-accounts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.error?.message || result.error || 'Gagal menyimpan rekening.');
+      }
+
+      form.reset();
+      setMessage('Rekening berhasil disimpan.', 'success');
+      await reloadAccounts();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Gagal menyimpan rekening.', 'error');
+    } finally {
+      submitButton.disabled = false;
+      if (submitLabel) submitLabel.hidden = false;
+      if (submitLoading) submitLoading.hidden = true;
+    }
+  });
+
+  list?.addEventListener('click', async (event) => {
+    const target = event.target as HTMLElement;
+    const button = target.closest('button[data-action]') as HTMLButtonElement | null;
+    if (!button) return;
+
+    const action = button.dataset.action;
+    const accountId = button.dataset.id;
+    if (!action || !accountId) return;
+
+    try {
+      if (action === 'primary') {
+        const response = await fetch(`/api/v1/bank-accounts/${accountId}/primary`, {
+          method: 'POST',
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.error?.message || result.error || 'Gagal mengubah rekening utama.');
+        }
+        setMessage('Rekening utama berhasil diperbarui.', 'success');
+      }
+
+      if (action === 'delete') {
+        const response = await fetch(`/api/v1/bank-accounts/${accountId}`, {
+          method: 'DELETE',
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.error?.message || result.error || 'Gagal menghapus rekening.');
+        }
+        setMessage('Rekening berhasil dihapus.', 'success');
+      }
+
+      await reloadAccounts();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Perubahan rekening gagal disimpan.', 'error');
+    }
+  });
+
+  renderAccounts();
+</script>

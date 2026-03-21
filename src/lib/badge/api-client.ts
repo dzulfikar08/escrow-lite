@@ -38,6 +38,25 @@ export interface BadgeApiError {
   code: string;
 }
 
+function isBadgeStatsResponse(data: unknown): data is BadgeStatsResponse {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+
+  const candidate = data as Partial<BadgeStatsResponse>;
+
+  return Boolean(
+    candidate.seller &&
+      candidate.stats &&
+      candidate.verification &&
+      typeof candidate.seller.id === 'string' &&
+      typeof candidate.seller.name === 'string' &&
+      typeof candidate.stats.totalTransactions === 'number' &&
+      typeof candidate.stats.successRate === 'number' &&
+      typeof candidate.stats.totalAmount === 'number'
+  );
+}
+
 /**
  * Badge API Client class
  */
@@ -67,14 +86,17 @@ export class BadgeApiClient {
       });
 
       if (!response.ok) {
-        const errorData: BadgeApiError = await response.json().catch(() => ({
+        const errorData = await response.json().catch(() => ({
           error: 'Unknown error',
           code: 'UNKNOWN_ERROR',
-        }));
+        })) as BadgeApiError;
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
-      const data: BadgeStatsResponse = await response.json();
+      const data = await response.json();
+      if (!isBadgeStatsResponse(data)) {
+        throw new Error('Invalid badge stats response');
+      }
       return data;
     } catch (error) {
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {

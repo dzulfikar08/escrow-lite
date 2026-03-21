@@ -2,8 +2,8 @@ import { ESCROW_CONFIG, VALID_TRANSITIONS, RELEASE_REASONS } from './constants';
 import type {
   Transaction,
   CreateTransactionDto,
-  TransactionStatus,
-  ReleaseReason,
+  TransactionStatusValue,
+  ReleaseReasonValue,
 } from './types';
 import { ValidationError, NotFoundError, ConflictError } from '@/lib/errors';
 
@@ -539,7 +539,7 @@ export class EscrowEngine {
   /**
    * Validate state transition
    */
-  private validateTransition(currentStatus: TransactionStatus, newStatus: string): void {
+  private validateTransition(currentStatus: TransactionStatusValue, newStatus: string): void {
     const allowedTransitions = VALID_TRANSITIONS[currentStatus];
 
     if (!allowedTransitions || !allowedTransitions.includes(newStatus)) {
@@ -577,12 +577,12 @@ export class EscrowEngine {
       net_amount: record.net_amount as number,
       gateway: record.gateway as 'midtrans' | 'xendit' | 'doku',
       gateway_transaction_id: (record.gateway_transaction_id as string | undefined),
-      status: record.status as TransactionStatus,
+      status: record.status as TransactionStatusValue,
       auto_release_days: (record.auto_release_days as number | undefined),
       auto_release_at: (record.auto_release_at as string | undefined),
       absolute_expire_at: (record.absolute_expire_at as string | undefined),
       shipped_at: (record.shipped_at as string | undefined),
-      release_reason: (record.release_reason as ReleaseReason | undefined),
+      release_reason: (record.release_reason as ReleaseReasonValue | undefined),
       refunded_at: (record.refunded_at as string | undefined),
       refund_reason: (record.refund_reason as string | undefined),
       metadata: (record.metadata as Record<string, unknown> | undefined),

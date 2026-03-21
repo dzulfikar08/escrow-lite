@@ -17,10 +17,19 @@ import type { APIRoute } from 'astro';
 
 export const prerender = false;
 
+function isDisputeReason(value: string): value is DisputeReason {
+  return Object.values(DisputeReason).includes(value as DisputeReason);
+}
+
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
     // Parse request body
-    const body = await request.json();
+    const body = await request.json() as {
+      transaction_id?: string;
+      reason?: string;
+      description?: string;
+      buyer_email?: string;
+    };
     const { transaction_id, reason, description, buyer_email } = body;
 
     // Validate required fields
@@ -38,7 +47,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Validate reason
     const validReasons = Object.values(DisputeReason);
-    if (!validReasons.includes(reason)) {
+    if (!isDisputeReason(reason)) {
       return createApiResponse(
         {
           error: `Invalid reason. Must be one of: ${validReasons.join(', ')}`,
@@ -48,18 +57,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // Initialize services
-    const db = (locals.runtime as { env: { DB: D1Database } }).env.DB;
+    const db = locals.runtime?.env.DB;
+    if (!db) {
+      return createApiResponse({ error: 'Database not available' }, 500);
+    }
     const engine = new EscrowEngine(db);
     const ledger = new LedgerService(db);
     const disputeService = new DisputeService(db, engine, ledger);
 
     // Open dispute
-    const dispute = await disputeService.openDispute(
-      transaction_id,
-      reason,
-      description || '',
-      buyer_email
-    );
+    const dispute = await disputeService.openDispute(transaction_id, reason, description || '', buyer_email);
 
     return createApiResponse(
       {
@@ -85,7 +92,10 @@ export const GET: APIRoute = async ({ url, locals }) => {
     const offset = parseInt(url.searchParams.get('offset') || '0');
 
     // Initialize services
-    const db = (locals.runtime as { env: { DB: D1Database } }).env.DB;
+    const db = locals.runtime?.env.DB;
+    if (!db) {
+      return createApiResponse({ error: 'Database not available' }, 500);
+    }
     const engine = new EscrowEngine(db);
     const ledger = new LedgerService(db);
     const disputeService = new DisputeService(db, engine, ledger);

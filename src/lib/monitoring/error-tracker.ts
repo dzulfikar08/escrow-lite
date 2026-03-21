@@ -219,7 +219,7 @@ export class ErrorTracker {
         .bind(...params, limit, offset)
         .all();
 
-      return (results.results || []) as ErrorLog[];
+      return ((results.results || []) as unknown) as ErrorLog[];
     } catch (error) {
       console.error('Failed to query errors:', error);
       return [];
@@ -236,7 +236,7 @@ export class ErrorTracker {
         .bind(errorId)
         .first();
 
-      return (result as ErrorLog) || null;
+      return ((result as unknown) as ErrorLog) || null;
     } catch (error) {
       console.error('Failed to get error by ID:', error);
       return null;

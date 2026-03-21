@@ -523,7 +523,11 @@ describe('LedgerService', () => {
       let currentBalance = 100000;
 
       // Sequence: credit 50000 -> debit 20000 -> credit 30000 = 160000
-      const operations = [
+      const operations: Array<{
+        type: 'credit' | 'debit';
+        amount: number;
+        expectedBalance: number;
+      }> = [
         { type: 'credit', amount: 50000, expectedBalance: 150000 },
         { type: 'debit', amount: 20000, expectedBalance: 130000 },
         { type: 'credit', amount: 30000, expectedBalance: 160000 },

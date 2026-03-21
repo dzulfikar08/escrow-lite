@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { BadgeApiClient, createBadgeApiClient } from './api-client';
+import { BadgeApiClient, createBadgeApiClient, type BadgeStatsResponse } from './api-client';
 
 describe('BadgeApiClient', () => {
   let client: BadgeApiClient;
@@ -11,8 +11,8 @@ describe('BadgeApiClient', () => {
 
   beforeEach(() => {
     // Mock fetch globally
-    mockFetch = vi.fn();
-    global.fetch = mockFetch;
+    mockFetch = vi.fn() as unknown as ReturnType<typeof vi.fn>;
+    global.fetch = mockFetch as unknown as typeof fetch;
 
     client = new BadgeApiClient('https://escrow-lite.id', 'test-seller-id');
   });
@@ -30,7 +30,7 @@ describe('BadgeApiClient', () => {
 
   describe('fetchStats', () => {
     it('should fetch stats successfully', async () => {
-      const mockStats = {
+      const mockStats: BadgeStatsResponse = {
         seller: {
           id: 'test-seller-id',
           name: 'Test Seller',
@@ -107,7 +107,7 @@ describe('BadgeApiClient', () => {
 
   describe('validateStats', () => {
     it('should validate correct stats', () => {
-      const validStats = {
+      const validStats: BadgeStatsResponse = {
         seller: {
           id: 'test-id',
           name: 'Test',
@@ -166,7 +166,7 @@ describe('BadgeApiClient', () => {
         seller: {
           id: 'test-id',
           name: 'Test',
-          kycTier: 'full',
+          kycTier: 'full' as const,
           kycVerified: true,
         },
         stats: {
@@ -188,7 +188,7 @@ describe('BadgeApiClient', () => {
         seller: {
           id: 'test-id',
           name: 'Test',
-          kycTier: 'full',
+          kycTier: 'full' as const,
           kycVerified: true,
         },
         stats: {

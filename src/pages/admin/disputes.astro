@@ -1,0 +1,499 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+
+export const prerender = false;
+
+const url = new URL(Astro.request.url);
+const statusParam = url.searchParams.get('status') || undefined;
+const pageParam = url.searchParams.get('page');
+const page = pageParam ? parseInt(pageParam, 10) : 1;
+const limit = 50;
+
+let disputes: any[] = [];
+let total = 0;
+let error: string | null = null;
+
+try {
+  const queryParams = new URLSearchParams();
+  if (statusParam) queryParams.append('status', statusParam);
+  queryParams.append('page', page.toString());
+  queryParams.append('limit', limit.toString());
+
+  const response = await fetch(
+    `${Astro.url.origin}/api/admin/api/disputes?${queryParams.toString()}`,
+    {
+      headers: {
+        Cookie: Astro.request.headers.get('cookie') || '',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to load disputes: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  disputes = result.data?.disputes || [];
+  total = result.data?.total || 0;
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Failed to load disputes';
+}
+
+const totalPages = Math.ceil(total / limit);
+
+const formatRupiah = (amount: number) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+  }).format(amount);
+};
+
+const formatDate = (dateString: string) => {
+  return new Intl.DateTimeFormat('id-ID', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(dateString));
+};
+
+const getStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    open: 'bg-yellow-100 text-yellow-800',
+    seller_responding: 'bg-blue-100 text-blue-800',
+    under_review: 'bg-purple-100 text-purple-800',
+    resolved: 'bg-green-100 text-green-800',
+    closed: 'bg-gray-100 text-gray-800',
+  };
+  return colors[status] || 'bg-gray-100 text-gray-800';
+};
+
+const getStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    open: 'Open',
+    seller_responding: 'Seller Responding',
+    under_review: 'Under Review',
+    resolved: 'Resolved',
+    closed: 'Closed',
+  };
+  return labels[status] || status;
+};
+
+const getResolutionLabel = (resolution: string | null) => {
+  if (!resolution) return '-';
+  const labels: Record<string, string> = {
+    released_to_seller: 'Seller Favored',
+    refunded_to_buyer: 'Buyer Favored',
+    partial: 'Partial',
+    rejected: 'Rejected',
+  };
+  return labels[resolution] || resolution;
+};
+
+const statuses = ['all', 'open', 'seller_responding', 'under_review', 'resolved', 'closed'];
+---
+
+<AdminLayout title="Disputes - Admin">
+  <div class="admin-disputes">
+    <div class="page-header">
+      <h2>Disputes</h2>
+      <p class="subtitle">Manage and resolve transaction disputes</p>
+    </div>
+
+    {error && (
+      <div class="error-banner">
+        <p>{error}</p>
+      </div>
+    )}
+
+    <div class="stats-bar">
+      <div class="stat-chip">
+        <span class="stat-chip-label">Total Disputes</span>
+        <span class="stat-chip-value">{total}</span>
+      </div>
+    </div>
+
+    <div class="filters-bar">
+      <form method="get" class="filters-form">
+        <div class="filter-group">
+          <label for="status">Status</label>
+          <select id="status" name="status" class="filter-select">
+            {statuses.map((s) => (
+              <option value={s === 'all' ? '' : s} selected={(statusParam || '') === (s === 'all' ? '' : s)}>
+                {s === 'all' ? 'All Statuses' : getStatusLabel(s)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button type="submit" class="btn-filter">Apply</button>
+      </form>
+      <div class="results-info">
+        Page {page} of {totalPages || 1}
+      </div>
+    </div>
+
+    <div class="disputes-list">
+      {disputes.length === 0 ? (
+        <div class="empty-state">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <h3>No disputes found</h3>
+          <p>No disputes match the current filters.</p>
+        </div>
+      ) : (
+        <ul class="dispute-items">
+          {disputes.map((d: any) => (
+            <li class="dispute-item">
+              <a href={`/admin/disputes/${d.id}`} class="dispute-link">
+                <div class="dispute-top">
+                  <div class="dispute-identity">
+                    <span class="txn-ref">Transaction #{d.transaction_id?.slice(0, 8)}</span>
+                    <span class={`status-pill ${getStatusColor(d.status)}`}>
+                      {getStatusLabel(d.status)}
+                    </span>
+                  </div>
+                  <span class="dispute-date">{formatDate(d.created_at)}</span>
+                </div>
+                <div class="dispute-meta">
+                  <div class="meta-row">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span>{d.buyer_email || '-'}</span>
+                  </div>
+                  <div class="meta-row">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                      <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    <span>{d.seller_name || '-'}</span>
+                  </div>
+                  <div class="meta-row">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="1" x2="12" y2="23"></line>
+                      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                    <span class="amount-text">{formatRupiah(d.amount)}</span>
+                  </div>
+                </div>
+                {d.resolution && (
+                  <div class="resolution-tag">
+                    Resolution: <strong>{getResolutionLabel(d.resolution)}</strong>
+                  </div>
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+
+    {totalPages > 1 && (
+      <div class="pagination">
+        {page > 1 && (
+          <a href={`?page=${page - 1}${statusParam ? `&status=${statusParam}` : ''}`} class="pagination-btn">
+            Previous
+          </a>
+        )}
+        <span class="pagination-info">Page {page} of {totalPages}</span>
+        {page < totalPages && (
+          <a href={`?page=${page + 1}${statusParam ? `&status=${statusParam}` : ''}`} class="pagination-btn">
+            Next
+          </a>
+        )}
+      </div>
+    )}
+  </div>
+</AdminLayout>
+
+<style>
+  .admin-disputes {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+  }
+
+  .page-header h2 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .subtitle {
+    font-size: 0.9375rem;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  .error-banner {
+    padding: 1rem 1.5rem;
+    background-color: #fee2e2;
+    border: 1px solid #fecaca;
+    border-radius: 0.5rem;
+    color: #991b1b;
+    margin-bottom: 1.5rem;
+  }
+
+  .stats-bar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .stat-chip-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  .stat-chip-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .filters-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .filters-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .filter-group label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .filter-select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    color: #374151;
+    background: white;
+    min-width: 180px;
+  }
+
+  .btn-filter {
+    padding: 0.5rem 1rem;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .btn-filter:hover {
+    background-color: #1d4ed8;
+  }
+
+  .results-info {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  .disputes-list {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .dispute-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .dispute-item {
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .dispute-item:last-child {
+    border-bottom: none;
+  }
+
+  .dispute-link {
+    display: block;
+    padding: 1.25rem 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.15s;
+  }
+
+  .dispute-link:hover {
+    background-color: #f9fafb;
+  }
+
+  .dispute-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .dispute-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .txn-ref {
+    font-weight: 600;
+    color: #2563eb;
+    font-size: 0.875rem;
+  }
+
+  .status-pill {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+
+  .dispute-date {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    white-space: nowrap;
+  }
+
+  .dispute-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+  }
+
+  .meta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  .meta-row svg {
+    color: #9ca3af;
+    flex-shrink: 0;
+  }
+
+  .amount-text {
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .resolution-tag {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+  }
+
+  .resolution-tag strong {
+    color: #374151;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #9ca3af;
+  }
+
+  .empty-state svg {
+    margin: 0 auto 1rem;
+    color: #d1d5db;
+  }
+
+  .empty-state h3 {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #6b7280;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .empty-state p {
+    font-size: 0.875rem;
+    margin: 0;
+  }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .pagination-btn {
+    padding: 0.5rem 1rem;
+    background-color: #2563eb;
+    color: white;
+    border-radius: 0.375rem;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .pagination-btn:hover {
+    background-color: #1d4ed8;
+  }
+
+  .pagination-info {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  @media (max-width: 768px) {
+    .dispute-top {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .dispute-meta {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+  }
+</style>

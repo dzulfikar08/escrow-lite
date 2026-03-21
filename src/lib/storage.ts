@@ -5,7 +5,35 @@
  * Handles file uploads, downloads, and presigned URL generation.
  */
 
-import type { R2Bucket } from '@cloudflare/workers-types';
+type CompatibleR2Object = {
+  size: number;
+  uploaded?: Date;
+  httpMetadata?: {
+    contentType?: string;
+  };
+  customMetadata?: Record<string, string>;
+};
+
+type CompatibleR2GetObject = {
+  arrayBuffer(): Promise<ArrayBuffer>;
+};
+
+type CompatibleR2Bucket = {
+  put(
+    key: string,
+    value: ArrayBuffer,
+    options?: {
+      httpMetadata?: {
+        contentType?: string;
+      };
+      customMetadata?: Record<string, string>;
+    }
+  ): Promise<unknown>;
+  delete(key: string): Promise<unknown>;
+  head(key: string): Promise<CompatibleR2Object | null>;
+  get(key: string): Promise<CompatibleR2GetObject | null>;
+  list(options?: { limit?: number }): Promise<unknown>;
+};
 
 export interface UploadMetadata {
   disputeId: string;
@@ -18,7 +46,7 @@ export interface UploadMetadata {
  * R2Storage class for managing files in Cloudflare R2
  */
 export class R2Storage {
-  constructor(private bucket: R2Bucket) {}
+  constructor(private bucket: CompatibleR2Bucket) {}
 
   /**
    * Generate a presigned upload URL for client-side uploads

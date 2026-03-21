@@ -1,8 +1,8 @@
-import { betterAuth } from "better-auth";
-import { kyselyAdapter } from "@better-auth/kysely-adapter";
-import { Kysely } from "kysely";
-import { D1Dialect } from "kysely-d1";
-import { SESSION_CONFIG, AUTH_CONFIG } from "./auth-constants";
+import { betterAuth } from 'better-auth';
+import { kyselyAdapter } from '@better-auth/kysely-adapter';
+import { Kysely } from 'kysely';
+import { D1Dialect } from 'kysely-d1';
+import { SESSION_CONFIG, AUTH_CONFIG } from './auth-constants';
 
 /**
  * Better Auth instance factory - must be called with DB from context
@@ -17,7 +17,7 @@ export function getAuth(db: D1Database, secret?: string) {
 
   return betterAuth({
     database: kyselyAdapter(kysely),
-    secret: secret || process.env.BETTER_AUTH_SECRET || 'dev-secret-change-in-production',
+    secret: secret || 'escrow-lite-production-secret-change-me',
     baseURL: AUTH_CONFIG.BASE_URL,
     emailAndPassword: {
       enabled: true,

@@ -19,7 +19,10 @@ const { seller } = Astro.props;
         <line x1="3" y1="18" x2="21" y2="18"></line>
       </svg>
     </button>
-    <h1 class="header-title">{seller.businessName}</h1>
+    <div>
+      <h1 class="header-title">{seller.businessName}</h1>
+      <p class="header-subtitle">Ringkasan escrow, payout, dan transaksi seller Anda.</p>
+    </div>
   </div>
 
   <div class="header-right">
@@ -28,14 +31,14 @@ const { seller } = Astro.props;
       <span class="seller-email">{seller.email}</span>
     </div>
 
-    <form action="/api/auth/logout" method="POST" class="logout-form">
+    <form action="/api/v1/auth/logout" method="POST" class="logout-form" id="dashboardLogoutForm">
       <button type="submit" class="logout-button">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
           <polyline points="16 17 21 12 16 7"></polyline>
           <line x1="21" y1="12" x2="9" y2="12"></line>
         </svg>
-        Keluar
+        <span>Keluar</span>
       </button>
     </form>
   </div>
@@ -46,11 +49,12 @@ const { seller } = Astro.props;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 1rem;
     padding: 1.25rem 2.5rem;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(10, 22, 40, 0.05);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+    box-shadow: 0 10px 30px -26px rgba(10, 22, 40, 0.4);
     position: sticky;
     top: 0;
     z-index: 40;
@@ -59,7 +63,8 @@ const { seller } = Astro.props;
   .header-left {
     display: flex;
     align-items: center;
-    gap: 1.25rem;
+    gap: 1rem;
+    min-width: 0;
   }
 
   .mobile-menu-toggle {
@@ -69,37 +74,33 @@ const { seller } = Astro.props;
     cursor: pointer;
     padding: 0.625rem;
     color: #0a1628;
-    border-radius: 0.625rem;
-    transition: all 0.3s ease;
-  }
-
-  .mobile-menu-toggle:hover {
-    background: #f1f5f9;
-    transform: scale(1.05);
+    border-radius: 0.75rem;
   }
 
   .header-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #0a1628;
+    font-size: 1.45rem;
     margin: 0;
-    font-family: var(--font-display);
-    letter-spacing: -0.01em;
+  }
+
+  .header-subtitle {
+    margin-top: 0.25rem;
+    color: #64748b;
+    font-size: 0.9rem;
   }
 
   .header-right {
     display: flex;
     align-items: center;
-    gap: 2rem;
+    gap: 1rem;
   }
 
   .seller-info {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    padding: 0.5rem 1rem;
-    background: #f8fafc;
-    border-radius: 0.625rem;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    border-radius: 0.9rem;
     border: 1px solid #e2e8f0;
   }
 
@@ -120,60 +121,36 @@ const { seller } = Astro.props;
   }
 
   .logout-button {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.625rem;
-    padding: 0.625rem 1.25rem;
+    padding: 0.75rem 1rem;
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     color: white;
     border: none;
-    border-radius: 0.625rem;
+    border-radius: 0.9rem;
     font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
-    font-family: var(--font-display);
+    font-weight: 700;
+    box-shadow: 0 16px 30px -24px rgba(239, 68, 68, 0.9);
   }
 
-  .logout-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
-  }
-
-  .logout-button svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  /* Mobile responsive */
   @media (max-width: 768px) {
     .dashboard-header {
-      padding: 1rem 1.5rem;
+      padding: 1rem 1.25rem;
     }
 
     .mobile-menu-toggle {
       display: flex;
     }
 
-    .header-title {
-      font-size: 1.125rem;
-    }
-
-    .seller-info {
-      display: none;
-    }
-
+    .header-subtitle,
+    .seller-info,
     .logout-button span {
       display: none;
     }
 
     .logout-button {
-      padding: 0.625rem;
-    }
-
-    .header-right {
-      gap: 1rem;
+      padding: 0.75rem;
     }
   }
 </style>
@@ -181,8 +158,21 @@ const { seller } = Astro.props;
 <script>
   const mobileMenuToggle = document.getElementById('mobileMenuToggle');
   const navigation = document.querySelector('.dashboard-navigation');
+  const logoutForm = document.getElementById('dashboardLogoutForm') as HTMLFormElement | null;
 
   mobileMenuToggle?.addEventListener('click', () => {
     navigation?.classList.toggle('mobile-open');
+  });
+
+  logoutForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const response = await fetch(logoutForm.action, {
+      method: 'POST',
+    });
+
+    if (response.ok) {
+      window.location.href = '/login';
+    }
   });
 </script>

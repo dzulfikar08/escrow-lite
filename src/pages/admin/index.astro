@@ -1,0 +1,384 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import StatCard from '@/components/admin/StatCard.astro';
+
+export const prerender = false;
+
+const formatRupiah = (amount: number) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+  }).format(amount);
+};
+
+let stats = {
+  totalTransactions: 0,
+  totalVolume: 0,
+  totalFees: 0,
+  openDisputes: 0,
+  totalSellers: 0,
+  totalPayouts: 0,
+};
+
+let recentTransactions: any[] = [];
+let recentDisputes: any[] = [];
+let error: string | null = null;
+
+try {
+  const [statsRes, transactionsRes, disputesRes] = await Promise.all([
+    fetch(`${Astro.url.origin}/api/admin/api/stats`, {
+      headers: { Cookie: Astro.request.headers.get('cookie') || '' },
+    }),
+    fetch(`${Astro.url.origin}/api/admin/api/transactions?limit=5`, {
+      headers: { Cookie: Astro.request.headers.get('cookie') || '' },
+    }),
+    fetch(`${Astro.url.origin}/api/admin/api/disputes?limit=5`, {
+      headers: { Cookie: Astro.request.headers.get('cookie') || '' },
+    }),
+  ]);
+
+  if (statsRes.ok) {
+    const result = await statsRes.json();
+    stats = { ...stats, ...result.data };
+  }
+
+  if (transactionsRes.ok) {
+    const result = await transactionsRes.json();
+    recentTransactions = result.data?.transactions || [];
+  }
+
+  if (disputesRes.ok) {
+    const result = await disputesRes.json();
+    recentDisputes = result.data?.disputes || [];
+  }
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Failed to load dashboard data';
+}
+
+const formatDate = (dateString: string) => {
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(dateString));
+};
+
+const getStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    held: 'bg-yellow-100 text-yellow-800',
+    released: 'bg-green-100 text-green-800',
+    disputed: 'bg-red-100 text-red-800',
+    refunded: 'bg-gray-100 text-gray-800',
+    funded: 'bg-blue-100 text-blue-800',
+    pending: 'bg-yellow-100 text-yellow-800',
+    open: 'bg-yellow-100 text-yellow-800',
+    under_review: 'bg-purple-100 text-purple-800',
+    resolved: 'bg-green-100 text-green-800',
+    closed: 'bg-gray-100 text-gray-800',
+  };
+  return colors[status] || 'bg-gray-100 text-gray-800';
+};
+---
+
+<AdminLayout title="Admin Dashboard">
+  <div class="admin-dashboard">
+    <div class="page-header">
+      <h2>Admin Dashboard</h2>
+      <p class="subtitle">Platform overview and key metrics</p>
+    </div>
+
+    {error && (
+      <div class="error-banner">
+        <p>{error}</p>
+      </div>
+    )}
+
+    <div class="stats-grid">
+      <StatCard
+        title="Total Transactions"
+        value={stats.totalTransactions.toLocaleString('id-ID')}
+        description="All time transactions"
+        icon="transactions"
+        color="blue"
+        href="/admin/transactions"
+      />
+      <StatCard
+        title="Total Volume"
+        value={formatRupiah(stats.totalVolume)}
+        description="Total transaction volume"
+        icon="volume"
+        color="green"
+      />
+      <StatCard
+        title="Open Disputes"
+        value={stats.openDisputes}
+        description="Disputes requiring attention"
+        icon="disputes"
+        color="red"
+        href="/admin/disputes"
+      />
+      <StatCard
+        title="Total Sellers"
+        value={stats.totalSellers}
+        description="Registered sellers"
+        icon="sellers"
+        color="purple"
+        href="/admin/sellers"
+      />
+    </div>
+
+    <div class="dashboard-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Recent Transactions</h3>
+          <a href="/admin/transactions" class="view-all">View All</a>
+        </div>
+        <div class="panel-body">
+          {recentTransactions.length === 0 ? (
+            <div class="empty-state">No transactions yet</div>
+          ) : (
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Seller</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentTransactions.map((tx: any) => (
+                  <tr>
+                    <td>
+                      <a href={`/admin/transactions/${tx.id}`} class="mono-link">
+                        {tx.id.slice(0, 12)}...
+                      </a>
+                    </td>
+                    <td>{tx.seller_email || tx.seller_name || '-'}</td>
+                    <td class="amount-cell">{formatRupiah(tx.amount)}</td>
+                    <td>
+                      <span class={`status-pill ${getStatusColor(tx.status)}`}>
+                        {tx.status}
+                      </span>
+                    </td>
+                    <td class="date-cell">{formatDate(tx.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Recent Disputes</h3>
+          <a href="/admin/disputes" class="view-all">View All</a>
+        </div>
+        <div class="panel-body">
+          {recentDisputes.length === 0 ? (
+            <div class="empty-state">No disputes</div>
+          ) : (
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Transaction</th>
+                  <th>Buyer</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentDisputes.map((d: any) => (
+                  <tr>
+                    <td>
+                      <a href={`/admin/disputes/${d.id}`} class="mono-link">
+                        #{d.transaction_id?.slice(0, 8)}
+                      </a>
+                    </td>
+                    <td>{d.buyer_email || '-'}</td>
+                    <td class="amount-cell">{formatRupiah(d.amount)}</td>
+                    <td>
+                      <span class={`status-pill ${getStatusColor(d.status)}`}>
+                        {d.status}
+                      </span>
+                    </td>
+                    <td class="date-cell">{formatDate(d.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<style>
+  .admin-dashboard {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+  }
+
+  .page-header h2 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .subtitle {
+    font-size: 0.9375rem;
+    color: #6b7280;
+    margin: 0;
+  }
+
+  .error-banner {
+    padding: 1rem 1.5rem;
+    background-color: #fee2e2;
+    border: 1px solid #fecaca;
+    border-radius: 0.5rem;
+    color: #991b1b;
+    margin-bottom: 1.5rem;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .panel {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+  }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .panel-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+  }
+
+  .view-all {
+    font-size: 0.8125rem;
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .view-all:hover {
+    text-decoration: underline;
+  }
+
+  .panel-body {
+    padding: 0;
+  }
+
+  .empty-state {
+    text-align: center;
+    color: #9ca3af;
+    padding: 3rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .data-table thead {
+    background-color: #f9fafb;
+  }
+
+  .data-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+  }
+
+  .data-table td {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    border-top: 1px solid #f3f4f6;
+    color: #374151;
+  }
+
+  .data-table tbody tr:hover {
+    background-color: #f9fafb;
+  }
+
+  .mono-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8125rem;
+  }
+
+  .mono-link:hover {
+    text-decoration: underline;
+  }
+
+  .amount-cell {
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .date-cell {
+    color: #6b7280;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+
+  .status-pill {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+
+  @media (max-width: 768px) {
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

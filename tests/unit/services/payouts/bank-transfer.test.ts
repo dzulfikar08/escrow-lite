@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   initiateBankTransfer,
   validateBankAccount,
@@ -7,6 +7,22 @@ import {
 } from '@/services/payouts/bank-transfer';
 
 describe('Bank Transfer Service (Stub)', () => {
+  beforeEach(() => {
+    (
+      globalThis as typeof globalThis & {
+        __BANK_TRANSFER_DELAY_MS__?: number;
+      }
+    ).__BANK_TRANSFER_DELAY_MS__ = 0;
+  });
+
+  afterEach(() => {
+    delete (
+      globalThis as typeof globalThis & {
+        __BANK_TRANSFER_DELAY_MS__?: number;
+      }
+    ).__BANK_TRANSFER_DELAY_MS__;
+  });
+
   describe('initiateBankTransfer', () => {
     it('should successfully initiate a bank transfer', async () => {
       const result = await initiateBankTransfer('BCA', '1234567890', 'John Doe', 5000000);
@@ -90,15 +106,20 @@ describe('Bank Transfer Service (Stub)', () => {
     });
 
     it('should simulate processing delay', async () => {
+      (
+        globalThis as typeof globalThis & {
+          __BANK_TRANSFER_DELAY_MS__?: number;
+        }
+      ).__BANK_TRANSFER_DELAY_MS__ = 25;
+
       const startTime = Date.now();
 
       await initiateBankTransfer('BCA', '1234567890', 'John Doe', 5000000);
 
       const duration = Date.now() - startTime;
 
-      // Should take approximately 1 second (1000ms)
-      expect(duration).toBeGreaterThanOrEqual(1000);
-      expect(duration).toBeLessThan(1500); // Allow some margin
+      expect(duration).toBeGreaterThanOrEqual(20);
+      expect(duration).toBeLessThan(250);
     });
 
     it('should generate unique references for each transfer', async () => {

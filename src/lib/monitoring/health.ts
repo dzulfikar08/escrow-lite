@@ -6,7 +6,10 @@
  */
 
 import type { D1Database } from '@cloudflare/workers-types';
-import type { R2Bucket } from '@cloudflare/workers-types';
+
+type CompatibleR2Bucket = {
+  list(options?: { limit?: number }): Promise<unknown>;
+};
 
 export interface HealthCheckResult {
   status: 'healthy' | 'unhealthy' | 'degraded';
@@ -35,7 +38,7 @@ export interface SystemMetrics {
 export class HealthChecker {
   constructor(
     private db: D1Database,
-    private r2: R2Bucket,
+    private r2: CompatibleR2Bucket,
     private midtransApiUrl: string,
     private midtransServerKey: string
   ) {}
@@ -100,29 +103,23 @@ export class HealthChecker {
    */
   async checkPayments(): Promise<HealthCheckResult> {
     const startTime = Date.now();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(new Error('Payment gateway timeout')), 5000);
 
     try {
-      // Create a timeout promise
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Payment gateway timeout')), 5000);
-      });
-
       // Create auth header for Midtrans
       const authHeader = `Basic ${btoa(`${this.midtransServerKey}:`)}`;
 
       // Try to ping Midtrans API (use a simple status check)
       // We'll check the SNAP API which should be available
-      const checkPromise = fetch(`${this.midtransApiUrl}/v2`, {
+      await fetch(`${this.midtransApiUrl}/v2`, {
         method: 'GET',
         headers: {
           Authorization: authHeader,
           Accept: 'application/json',
         },
-        signal: AbortSignal.timeout(5000), // 5 second timeout
+        signal: controller.signal,
       });
-
-      // Race between the check and timeout
-      const response = await Promise.race([checkPromise, timeoutPromise]);
 
       // Midtrans API may return 404 for /v2 endpoint, but that means it's reachable
       // We consider any response (including 404) as healthy, as long as we get a response
@@ -138,6 +135,8 @@ export class HealthChecker {
         message: error instanceof Error ? error.message : 'Payment gateway unavailable',
         responseTime: Date.now() - startTime,
       };
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 

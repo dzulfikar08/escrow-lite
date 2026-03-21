@@ -80,9 +80,9 @@ export const POST: APIRoute = async (context) => {
     }
 
     // Parse request body
-    let body;
+    let body: { tracking_number?: string };
     try {
-      body = await context.request.json();
+      body = await context.request.json() as { tracking_number?: string };
     } catch (error) {
       throw new ValidationError('Invalid JSON body');
     }

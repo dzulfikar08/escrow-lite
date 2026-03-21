@@ -4,7 +4,7 @@
  * TDD approach: Tests written before implementation
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PayoutService } from '@/services/payouts/processor';
 import { LedgerService } from '@/services/escrow/ledger';
 import { BalanceService } from '@/services/escrow/balance';
@@ -46,6 +46,19 @@ describe('PayoutService', () => {
   const TEST_ACCOUNT_NAME = 'Test Seller';
 
   beforeEach(() => {
+    (
+      globalThis as typeof globalThis & {
+        __BANK_TRANSFER_DELAY_MS__?: number;
+        __BANK_TRANSFER_RANDOM__?: () => number;
+      }
+    ).__BANK_TRANSFER_DELAY_MS__ = 0;
+    (
+      globalThis as typeof globalThis & {
+        __BANK_TRANSFER_DELAY_MS__?: number;
+        __BANK_TRANSFER_RANDOM__?: () => number;
+      }
+    ).__BANK_TRANSFER_RANDOM__ = () => 0.99;
+
     mockDB = createMockDB();
     mockLedger = {
       recordPayout: vi.fn(),
@@ -60,6 +73,21 @@ describe('PayoutService', () => {
       mockLedger as LedgerService,
       mockBalance as BalanceService
     );
+  });
+
+  afterEach(() => {
+    delete (
+      globalThis as typeof globalThis & {
+        __BANK_TRANSFER_DELAY_MS__?: number;
+        __BANK_TRANSFER_RANDOM__?: () => number;
+      }
+    ).__BANK_TRANSFER_DELAY_MS__;
+    delete (
+      globalThis as typeof globalThis & {
+        __BANK_TRANSFER_DELAY_MS__?: number;
+        __BANK_TRANSFER_RANDOM__?: () => number;
+      }
+    ).__BANK_TRANSFER_RANDOM__;
   });
 
   describe('createPayout', () => {

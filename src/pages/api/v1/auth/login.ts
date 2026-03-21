@@ -9,47 +9,41 @@ export const prerender = false;
 
 export const POST: APIRoute = async (context) => {
   try {
-    // Generate request ID at start for tracing
     const requestId = crypto.randomUUID();
-
-    // Get DB from runtime
-    const db = context.locals.runtime?.env.DB;
+    const env = context.locals.runtime?.env as {
+      DB?: D1Database;
+      BETTER_AUTH_SECRET?: string;
+    } | undefined;
+    const db = env?.DB;
     if (!db) {
       throw new AppError('Database not available', 500, 'INTERNAL_ERROR');
     }
 
-    // Parse and validate
     const body = await context.request.json();
     const data = loginSellerSchema.parse(body);
 
-    // Get auth instance with DB and secret
-    const secret = context.locals.runtime?.env?.BETTER_AUTH_SECRET as string;
+    const secret = env?.BETTER_AUTH_SECRET as string;
     const auth = getAuth(db, secret);
-
-    // Sign in user with request context for session cookies
     const authResponse = await auth.api.signInEmail({
       body: {
         email: data.email,
         password: data.password,
       },
-    });
+    }) as {
+      user?: {
+        id: string;
+        email: string;
+        name: string;
+        createdAt: Date;
+      };
+      headers?: Headers;
+    };
 
-    // Check if authentication succeeded
     if (!authResponse.user) {
       throw new AuthenticationError('Invalid email or password');
     }
 
-    // Build response with session cookie headers if present
-    const responseHeaders: HeadersInit = {};
-    if (authResponse.headers) {
-      // Forward session cookie headers from Better Auth
-      const setCookieHeaders = authResponse.headers.getSetCookie();
-      if (setCookieHeaders.length > 0) {
-        responseHeaders['Set-Cookie'] = setCookieHeaders;
-      }
-    }
-
-    return jsonResponse(
+    const response = jsonResponse(
       {
         data: {
           id: authResponse.user.id,
@@ -63,9 +57,16 @@ export const POST: APIRoute = async (context) => {
           timestamp: new Date().toISOString(),
         },
       },
-      200,
-      responseHeaders
+      200
     );
+
+    if (authResponse.headers) {
+      authResponse.headers.getSetCookie().forEach((value) => {
+        response.headers.append('Set-Cookie', value);
+      });
+    }
+
+    return response;
 
   } catch (error) {
     if (error instanceof z.ZodError) {

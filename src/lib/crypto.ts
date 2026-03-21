@@ -12,7 +12,7 @@
  * @param data - The data to sign
  * @returns The hexadecimal signature string
  */
-export function createHmacSignature(key: string, data: string): string {
+export async function createHmacSignature(key: string, data: string): Promise<string> {
   const encoder = new TextEncoder();
   const keyData = encoder.encode(key);
   const messageData = encoder.encode(data);

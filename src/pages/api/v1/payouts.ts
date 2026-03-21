@@ -72,7 +72,11 @@ export const POST: APIRoute = async (context) => {
     const sellerId = session.user.id;
 
     // Parse request body
-    const body = await context.request.json();
+    const body = await context.request.json() as {
+      amount?: number;
+      bank_account_id?: string;
+      notes?: string;
+    };
     const { amount, bank_account_id, notes } = body;
 
     // Validate amount

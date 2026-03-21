@@ -195,7 +195,7 @@ export class AuditLogService {
       .bind(params.targetType, params.targetId, limit, offset)
       .all();
 
-    return result.results as AuditLogEntry[];
+    return (result.results as unknown) as AuditLogEntry[];
   }
 
   /**
@@ -227,6 +227,6 @@ export class AuditLogService {
       .bind(params.actorType, params.actorId, limit, offset)
       .all();
 
-    return result.results as AuditLogEntry[];
+    return (result.results as unknown) as AuditLogEntry[];
   }
 }

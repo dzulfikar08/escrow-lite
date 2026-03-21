@@ -13,7 +13,7 @@ import {
 } from '@/lib/errors';
 
 // Mock D1 database
-const mockDb = {
+const mockDb: { prepare: any } = {
   prepare: vi.fn(() => ({
     bind: vi.fn(() => ({
       run: vi.fn(),

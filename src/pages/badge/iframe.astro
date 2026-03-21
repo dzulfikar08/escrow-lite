@@ -1,0 +1,128 @@
+---
+export const prerender = false;
+
+import type { APIRoute } from 'astro';
+
+export const GET: APIRoute = async ({ url, locals }) => {
+  const sellerId = url.searchParams.get('seller_id');
+  const theme = url.searchParams.get('theme') || 'light';
+  const accentColor = url.searchParams.get('accent_color') || null;
+
+  if (!sellerId) {
+    return new Response('Missing seller_id', { status: 400 });
+  }
+
+  let stats: any;
+  try {
+    const origin = url.origin;
+    const statsUrl = `${origin}/api/badge/${sellerId}/stats`;
+    const res = await fetch(statsUrl);
+    if (!res.ok) {
+      return new Response('Failed to fetch seller stats', { status: 502 });
+    }
+    stats = await res.json();
+  } catch {
+    return new Response('Failed to fetch seller stats', { status: 502 });
+  }
+
+  const seller = stats.seller;
+  const sellerStats = stats.stats;
+  const verification = stats.verification;
+
+  const isDark = theme === 'dark';
+  const bgColor = isDark ? '#1f2937' : '#ffffff';
+  const textColor = isDark ? '#f3f4f6' : '#111827';
+  const subtextColor = isDark ? '#d1d5db' : '#6b7280';
+  const borderColor = isDark ? '#374151' : '#e5e7eb';
+  const accent = accentColor || (isDark ? '#60a5fa' : '#2563eb');
+  const verifiedColor = '#10b981';
+
+  const successRate = sellerStats.successRate;
+  let rateColor = '#9ca3af';
+  if (successRate >= 95) rateColor = '#10b981';
+  else if (successRate >= 85) rateColor = '#3b82f6';
+  else if (successRate >= 70) rateColor = '#f59e0b';
+
+  const kycText = verification.isVerified
+    ? verification.level === 'Verified'
+      ? 'Verified Seller'
+      : 'Basic Verified'
+    : 'Seller';
+
+  const formattedTx = new Intl.NumberFormat('id-ID').format(sellerStats.totalTransactions);
+
+  const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Fira Sans','Droid Sans','Helvetica Neue',sans-serif;padding:0;margin:0;background:${bgColor}}
+.el-badge{max-width:320px;padding:16px;border:1px solid ${borderColor};border-radius:10px;background:${bgColor};color:${textColor}}
+.el-badge-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.el-badge-logo{display:flex;align-items:center;gap:6px;color:${accent}}
+.el-badge-logo svg{flex-shrink:0}
+.el-badge-title{font-weight:600;font-size:13px;white-space:nowrap}
+.el-badge-verification{display:flex;align-items:center;gap:4px}
+.el-badge-verified-icon{color:${verifiedColor};flex-shrink:0}
+.el-badge-verification-text{font-size:11px;font-weight:500;color:${subtextColor};white-space:nowrap}
+.el-badge-message{margin-top:10px;font-size:12px;color:${subtextColor};line-height:1.5}
+.el-badge-stats{display:flex;gap:16px;margin-top:10px}
+.el-stat{display:flex;flex-direction:column;gap:2px}
+.el-stat-label{font-size:10px;text-transform:uppercase;letter-spacing:0.03em;color:${subtextColor}}
+.el-stat-value{font-weight:700;font-size:14px;line-height:1}
+.el-stat-value--accent{color:${rateColor}}
+.el-badge-footer{margin-top:10px;font-size:10px;color:${subtextColor};display:flex;align-items:center;gap:4px}
+.el-badge-footer svg{flex-shrink:0;opacity:0.6}
+</style>
+</head>
+<body>
+<div class="el-badge">
+  <div class="el-badge-header">
+    <div class="el-badge-logo">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      <span class="el-badge-title">Escrow Lite</span>
+    </div>
+    <div class="el-badge-verification">
+      ${seller.kycVerified ? `<svg class="el-badge-verified-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>` : ''}
+      <span class="el-badge-verification-text">${kycText}</span>
+    </div>
+  </div>
+  <div class="el-badge-message">Pembayaran dilindungi Escrow Lite</div>
+  <div class="el-badge-stats">
+    <div class="el-stat">
+      <span class="el-stat-label">Transaksi</span>
+      <span class="el-stat-value">${formattedTx}</span>
+    </div>
+    <div class="el-stat">
+      <span class="el-stat-label">Success Rate</span>
+      <span class="el-stat-value el-stat-value--accent">${successRate}%</span>
+    </div>
+  </div>
+  <div class="el-badge-footer">
+    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </svg>
+    Dana otomatis dilepas setelah konfirmasi penerimaan
+  </div>
+</div>
+</body>
+</html>`;
+
+  return new Response(html, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'X-Frame-Options': 'ALLOWALL',
+      'Content-Security-Policy': "frame-ancestors *",
+      'Cache-Control': 'public, max-age=60',
+    },
+  });
+};

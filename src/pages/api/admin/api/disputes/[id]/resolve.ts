@@ -1,9 +1,14 @@
 import type { APIRoute } from 'astro';
 import { DisputeService } from '@/services/admin/disputes';
+import type { DisputeResolution } from '@/services/admin/types';
 import { jsonResponse } from '@/lib/response';
 import { AuthenticationError, handleError, AuthorizationError, NotFoundError, ValidationError } from '@/lib/errors';
 
 export const prerender = false;
+
+function isDisputeResolution(value: string): value is DisputeResolution {
+  return ['released_to_seller', 'refunded_to_buyer', 'partial', 'rejected'].includes(value);
+}
 
 /**
  * POST /admin/api/disputes/[id]/resolve
@@ -68,12 +73,15 @@ export const POST: APIRoute = async (context) => {
     }
 
     // Parse request body
-    const body = await context.request.json();
+    const body = await context.request.json() as {
+      resolution?: string;
+      note?: string;
+    };
     const { resolution, note } = body;
 
     // Validate resolution
-    const validResolutions = ['released_to_seller', 'refunded_to_buyer', 'partial', 'rejected'];
-    if (!resolution || !validResolutions.includes(resolution)) {
+    const validResolutions: DisputeResolution[] = ['released_to_seller', 'refunded_to_buyer', 'partial', 'rejected'];
+    if (!resolution || !isDisputeResolution(resolution)) {
       throw new ValidationError(
         `Invalid resolution. Must be one of: ${validResolutions.join(', ')}`
       );

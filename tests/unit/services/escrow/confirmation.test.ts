@@ -4,6 +4,13 @@ import { EscrowEngine } from '@/services/escrow/engine';
 import { TransactionStatus, type Transaction } from '@/services/escrow/types';
 import { ValidationError, NotFoundError, ConflictError } from '@/lib/errors';
 
+type MockPreparedStatement = {
+  bind: ReturnType<typeof vi.fn>;
+  run: ReturnType<typeof vi.fn>;
+  first: ReturnType<typeof vi.fn>;
+  all: ReturnType<typeof vi.fn>;
+};
+
 describe('ConfirmationService', () => {
   let confirmationService: ConfirmationService;
   let mockEngine: EscrowEngine;
@@ -33,12 +40,12 @@ describe('ConfirmationService', () => {
       const transactionId = 'tx_123';
       const buyerEmail = 'buyer@example.com';
 
-      const mockStmt = {
+      const mockStmt: MockPreparedStatement = {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
         all: vi.fn().mockResolvedValue([]),
-      } as unknown as D1PreparedStatement;
+      };
 
       mockPrepare.mockReturnValue(mockStmt);
 
@@ -55,12 +62,12 @@ describe('ConfirmationService', () => {
       const transactionId = 'tx_123';
       const buyerEmail = 'buyer@example.com';
 
-      const mockStmt = {
+      const mockStmt: MockPreparedStatement = {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
         all: vi.fn().mockResolvedValue([]),
-      } as unknown as D1PreparedStatement;
+      };
 
       mockPrepare.mockReturnValue(mockStmt);
 
@@ -76,7 +83,7 @@ describe('ConfirmationService', () => {
       const bindCalls = mockStmt.bind.mock.calls;
       let foundValidExpiry = false;
 
-      for (const call of bindCalls) {
+      for (const call of bindCalls as unknown[][]) {
         for (const arg of call) {
           if (typeof arg === 'string') {
             try {
@@ -101,12 +108,12 @@ describe('ConfirmationService', () => {
       const transactionId = 'tx_123';
       const buyerEmail = 'buyer@example.com';
 
-      const mockStmt = {
+      const mockStmt: MockPreparedStatement = {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
         all: vi.fn().mockResolvedValue([]),
-      } as unknown as D1PreparedStatement;
+      };
 
       mockPrepare.mockReturnValue(mockStmt);
 
@@ -116,8 +123,8 @@ describe('ConfirmationService', () => {
       expect(mockStmt.bind).toHaveBeenCalled();
 
       // Check that buyerEmail is in one of the bind calls
-      const bindCalls = mockStmt.bind.mock.calls;
-      const hasBuyerEmail = bindCalls.some(call => call.includes(buyerEmail));
+      const bindCalls = mockStmt.bind.mock.calls as unknown[][];
+      const hasBuyerEmail = bindCalls.some((call) => call.includes(buyerEmail));
 
       expect(hasBuyerEmail).toBe(true);
     });
@@ -129,12 +136,12 @@ describe('ConfirmationService', () => {
       const buyerEmail = 'buyer@example.com';
       const expectedToken = 'a'.repeat(64); // Mock token
 
-      const mockStmt = {
+      const mockStmt: MockPreparedStatement = {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn().mockResolvedValue(null),
         all: vi.fn().mockResolvedValue([]),
-      } as unknown as D1PreparedStatement;
+      };
 
       mockPrepare.mockReturnValue(mockStmt);
 
@@ -189,7 +196,7 @@ describe('ConfirmationService', () => {
         created_at: new Date().toISOString(),
       };
 
-      const mockStmt = {
+      const mockStmt: MockPreparedStatement = {
         bind: vi.fn().mockReturnThis(),
         run: vi.fn().mockResolvedValue({ success: true }),
         first: vi.fn()
@@ -197,7 +204,7 @@ describe('ConfirmationService', () => {
           .mockResolvedValueOnce(heldTransaction)
           .mockResolvedValueOnce(releasedTransaction),
         all: vi.fn().mockResolvedValue([]),
-      } as unknown as D1PreparedStatement;
+      };
 
       mockPrepare.mockReturnValue(mockStmt);
 

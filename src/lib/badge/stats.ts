@@ -68,12 +68,17 @@ export async function calculateSellerStats(
        WHERE seller_id = ?`
     )
     .bind(sellerId)
-    .first();
+    .first<{
+      total_transactions?: number;
+      successful_transactions?: number;
+      active_holds?: number;
+      total_amount?: number;
+    }>();
 
-  const totalTransactions = transactionStats?.total_transactions || 0;
-  const successfulTransactions = transactionStats?.successful_transactions || 0;
-  const activeHolds = transactionStats?.active_holds || 0;
-  const totalAmount = transactionStats?.total_amount || 0;
+  const totalTransactions = transactionStats?.total_transactions ?? 0;
+  const successfulTransactions = transactionStats?.successful_transactions ?? 0;
+  const activeHolds = transactionStats?.active_holds ?? 0;
+  const totalAmount = transactionStats?.total_amount ?? 0;
 
   // Calculate success rate
   const successRate =

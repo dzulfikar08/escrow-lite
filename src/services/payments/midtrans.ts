@@ -133,7 +133,10 @@ export class MidtransService {
       );
     }
 
-    const data = await response.json();
+    const data = await response.json() as {
+      token?: string;
+      redirect_url?: string;
+    };
 
     // Validate response
     if (!data.token || !data.redirect_url) {

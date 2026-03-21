@@ -5,8 +5,16 @@ import { EscrowEngine } from '../../../../src/services/escrow/engine';
 import { LedgerService } from '../../../../src/services/escrow/ledger';
 import { NotFoundError, ConflictError, ValidationError } from '../../../../src/lib/errors';
 
+type MockDb = {
+  prepare: ReturnType<typeof vi.fn>;
+  bind: ReturnType<typeof vi.fn>;
+  first: ReturnType<typeof vi.fn>;
+  run: ReturnType<typeof vi.fn>;
+  all: ReturnType<typeof vi.fn>;
+};
+
 describe('DisputeService', () => {
-  let db: D1Database;
+  let db: MockDb;
   let engine: EscrowEngine;
   let ledger: LedgerService;
   let service: DisputeService;
@@ -19,7 +27,7 @@ describe('DisputeService', () => {
       first: vi.fn(),
       run: vi.fn(),
       all: vi.fn(),
-    } as unknown as D1Database;
+    };
 
     // Mock EscrowEngine
     engine = {
@@ -36,7 +44,7 @@ describe('DisputeService', () => {
       getBalance: vi.fn(),
     } as unknown as LedgerService;
 
-    service = new DisputeService(db, engine, ledger);
+    service = new DisputeService(db as unknown as D1Database, engine, ledger);
   });
 
   describe('openDispute', () => {

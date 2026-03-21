@@ -4,15 +4,18 @@ import { ErrorTracker } from '@/lib/monitoring/error-tracker';
 
 const PROTECTED_PREFIXES = ['/dashboard'];
 const ADMIN_PREFIXES = ['/admin'];
+const AUTH_API_PREFIXES = ['/api/auth'];
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  // Generate unique request ID for tracing
   const requestId = crypto.randomUUID();
   context.locals.requestId = requestId;
 
-  // Inject the D1 database into locals for access in pages and layouts
-  // This allows us to access the database in Astro components
   const env = context.locals.runtime?.env;
+  const pathname = context.url.pathname;
+
+  if (AUTH_API_PREFIXES.some((p) => pathname.startsWith(p))) {
+    return next();
+  }
 
   if (env?.DB) {
     // Make the database available through context.locals
@@ -44,16 +47,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
           endpoint: context.url.pathname,
           method: context.request.method,
           userAgent: context.request.headers.get('user-agent') || undefined,
-          ip: context.request.headers.get('cf-connecting-ip') ||
-              context.request.headers.get('x-forwarded-for') ||
-              undefined,
+          ip:
+            context.request.headers.get('cf-connecting-ip') ||
+            context.request.headers.get('x-forwarded-for') ||
+            undefined,
         }
       );
     }
   }
 
   // Guard protected routes — redirect to login if no session
-  const pathname = context.url.pathname;
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
   const isAdmin = ADMIN_PREFIXES.some((p) => pathname.startsWith(p));
 
@@ -89,9 +92,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
           endpoint: context.url.pathname,
           method: context.request.method,
           userAgent: context.request.headers.get('user-agent') || undefined,
-          ip: context.request.headers.get('cf-connecting-ip') ||
-              context.request.headers.get('x-forwarded-for') ||
-              undefined,
+          ip:
+            context.request.headers.get('cf-connecting-ip') ||
+            context.request.headers.get('x-forwarded-for') ||
+            undefined,
           userId: context.locals.session?.user?.id,
         });
       }
@@ -110,9 +114,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
           endpoint: context.url.pathname,
           method: context.request.method,
           userAgent: context.request.headers.get('user-agent') || undefined,
-          ip: context.request.headers.get('cf-connecting-ip') ||
-              context.request.headers.get('x-forwarded-for') ||
-              undefined,
+          ip:
+            context.request.headers.get('cf-connecting-ip') ||
+            context.request.headers.get('x-forwarded-for') ||
+            undefined,
           userId: context.locals.session?.user?.id,
           metadata: {
             unhandled: true,

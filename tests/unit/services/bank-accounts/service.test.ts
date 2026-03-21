@@ -3,8 +3,16 @@ import { BankAccountService } from '../../../../src/services/bank-accounts/servi
 import { INDONESIAN_BANKS } from '../../../../src/services/bank-accounts/types';
 import { ValidationError, NotFoundError, ConflictError } from '../../../../src/lib/errors';
 
+type MockDb = {
+  prepare: ReturnType<typeof vi.fn>;
+  bind: ReturnType<typeof vi.fn>;
+  first: ReturnType<typeof vi.fn>;
+  run: ReturnType<typeof vi.fn>;
+  all: ReturnType<typeof vi.fn>;
+};
+
 describe('BankAccountService', () => {
-  let db: D1Database;
+  let db: MockDb;
   let service: BankAccountService;
 
   beforeEach(() => {
@@ -15,9 +23,9 @@ describe('BankAccountService', () => {
       first: vi.fn(),
       run: vi.fn(),
       all: vi.fn(),
-    } as unknown as D1Database;
+    };
 
-    service = new BankAccountService(db);
+    service = new BankAccountService(db as unknown as D1Database);
   });
 
   describe('validateAccountNumber', () => {

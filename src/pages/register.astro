@@ -1,303 +1,275 @@
 ---
 import Layout from '@/layouts/Layout.astro';
+
+const redirectTo = Astro.url.searchParams.get('redirect') || '/dashboard';
 ---
 
 <Layout title="Daftar - Escrow Lite">
-  <div class="login-page">
-    <div class="login-container">
-      <div class="login-header">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="logo">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-        </svg>
-        <h1>Daftar Escrow Lite</h1>
-        <p>Buat akun untuk mulai bertransaksi</p>
+  <div class="auth-page">
+    <section class="auth-shell">
+      <div class="auth-aside">
+        <span class="eyebrow">Seller onboarding</span>
+        <h1>Buat akun dan siapkan payout flow Anda dari awal.</h1>
+        <p>
+          Setelah daftar, Anda bisa langsung masuk ke dashboard untuk menambah rekening bank,
+          memantau saldo, dan mulai menerima transaksi escrow.
+        </p>
       </div>
 
-      <form class="login-form" id="registerForm">
-        <div class="form-group">
-          <label for="name">Nama</label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            required
-            placeholder="Nama lengkap"
-            autocomplete="name"
-          />
+      <div class="auth-card">
+        <div class="card-header">
+          <h2>Daftar</h2>
+          <p>Buat akun seller baru untuk mulai menggunakan Escrow Lite.</p>
         </div>
 
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            required
-            placeholder="nama@email.com"
-            autocomplete="email"
-          />
-        </div>
+        <form class="auth-form" id="registerForm" data-redirect={redirectTo}>
+          <label class="field">
+            <span>Nama</span>
+            <input type="text" id="name" name="name" required placeholder="Nama lengkap" autocomplete="name" />
+          </label>
 
-        <div class="form-group">
-          <label for="password">Kata Sandi</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            required
-            placeholder="Minimal 8 karakter"
-            autocomplete="new-password"
-            minlength="8"
-          />
-        </div>
+          <label class="field">
+            <span>Email</span>
+            <input type="email" id="email" name="email" required placeholder="nama@email.com" autocomplete="email" />
+          </label>
 
-        <button type="submit" class="btn-submit">Daftar</button>
-      </form>
+          <label class="field">
+            <span>Kata Sandi</span>
+            <input type="password" id="password" name="password" required minlength="8" placeholder="Minimal 8 karakter" autocomplete="new-password" />
+          </label>
 
-      <div class="login-footer">
-        <p>Sudah punya akun? <a href="/login">Masuk</a></p>
+          <p id="registerMessage" class="form-message" hidden></p>
+
+          <button type="submit" class="submit-button">
+            <span class="submit-label">Buat Akun</span>
+            <span class="submit-loading" hidden>Menyimpan...</span>
+          </button>
+        </form>
+
+        <p class="card-footer">
+          Sudah punya akun? <a href={`/login?redirect=${encodeURIComponent(redirectTo)}`}>Masuk</a>
+        </p>
       </div>
-    </div>
+    </section>
   </div>
 
   <style>
-    .login-page {
+    .auth-page {
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-      background: linear-gradient(135deg, #0a1628 0%, #1a2744 50%, #0f2937 100%);
-      position: relative;
-      overflow: hidden;
+      padding: 1.25rem;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at top left, rgba(16, 185, 129, 0.18), transparent 24%),
+        radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.14), transparent 22%),
+        linear-gradient(135deg, #08111f 0%, #10263b 45%, #16434f 100%);
     }
 
-    .login-page::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      right: -50%;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
-      animation: float 20s ease-in-out infinite;
+    .auth-shell {
+      width: min(1100px, 100%);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(360px, 460px);
+      gap: 1.5rem;
     }
 
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      50% { transform: translate(-50px, -50px) rotate(180deg); }
-    }
-
-    .login-container {
-      width: 100%;
-      max-width: 440px;
-      padding: 3rem;
-      background: rgba(255, 255, 255, 0.95);
+    .auth-aside,
+    .auth-card {
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(20px);
-      border-radius: 1.5rem;
-      box-shadow: 0 25px 50px -12px rgba(10, 22, 40, 0.25);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      position: relative;
-      z-index: 1;
-      animation: slideUp 0.6s ease-out;
     }
 
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    .auth-aside {
+      padding: 2rem;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.04));
+      color: white;
     }
 
-    .login-header {
-      text-align: center;
-      margin-bottom: 2.5rem;
+    .eyebrow {
+      display: inline-flex;
+      padding: 0.45rem 0.75rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fde68a;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
-    .logo {
-      color: #10b981;
-      margin-bottom: 1.25rem;
-      display: inline-block;
-      animation: pulse 2s ease-in-out infinite;
+    .auth-aside h1 {
+      margin-top: 1rem;
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      line-height: 1;
+      color: white;
     }
 
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
+    .auth-aside p {
+      margin-top: 1rem;
+      color: rgba(255, 255, 255, 0.78);
+      max-width: 46ch;
     }
 
-    .login-header h1 {
+    .auth-card {
+      padding: 2rem;
+      background: rgba(255, 255, 255, 0.97);
+      box-shadow: 0 30px 80px -45px rgba(8, 17, 31, 0.75);
+    }
+
+    .card-header h2 {
       font-size: 2rem;
-      font-weight: 800;
-      color: #0a1628;
-      margin: 0 0 0.75rem 0;
-      letter-spacing: -0.02em;
+      margin-bottom: 0.4rem;
     }
 
-    .login-header p {
-      font-size: 1rem;
+    .card-header p,
+    .card-footer {
       color: #64748b;
-      margin: 0;
-      font-weight: 400;
     }
 
-    .login-form {
-      display: flex;
-      flex-direction: column;
-      gap: 1.75rem;
+    .auth-form {
+      display: grid;
+      gap: 1rem;
+      margin-top: 1.5rem;
     }
 
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.625rem;
+    .field {
+      display: grid;
+      gap: 0.45rem;
     }
 
-    .form-group label {
-      font-size: 0.875rem;
-      font-weight: 600;
+    .field span {
+      font-weight: 700;
+      font-size: 0.9rem;
       color: #0f172a;
-      font-family: var(--font-display);
-      letter-spacing: 0.01em;
     }
 
-    .form-group input {
-      padding: 0.875rem 1rem;
-      border: 2px solid #e2e8f0;
-      border-radius: 0.75rem;
-      font-size: 0.9375rem;
-      transition: all 0.3s ease;
+    .field input {
+      min-height: 52px;
+      border-radius: 16px;
+      border: 1px solid #dbe4ee;
       background: #f8fafc;
-      font-family: var(--font-body);
+      padding: 0.85rem 1rem;
+      font-size: 0.95rem;
     }
 
-    .form-group input:focus {
+    .field input:focus {
       outline: none;
       border-color: #10b981;
-      background: #ffffff;
-      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
-      transform: translateY(-1px);
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
+      background: white;
     }
 
-    .form-group input::placeholder {
-      color: #94a3b8;
-    }
-
-    .btn-submit {
-      padding: 0.875rem 1.5rem;
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      color: white;
-      border: none;
-      border-radius: 0.75rem;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-      font-family: var(--font-display);
-      letter-spacing: 0.01em;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .btn-submit::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-      transition: left 0.5s ease;
-    }
-
-    .btn-submit:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
-    }
-
-    .btn-submit:hover::before {
-      left: 100%;
-    }
-
-    .btn-submit:active {
-      transform: translateY(0);
-    }
-
-    .login-footer {
-      margin-top: 2rem;
-      text-align: center;
-      padding-top: 1.5rem;
-      border-top: 1px solid #e2e8f0;
-    }
-
-    .login-footer p {
-      font-size: 0.9375rem;
-      color: #64748b;
+    .form-message {
       margin: 0;
+      padding: 0.8rem 0.9rem;
+      border-radius: 14px;
+      font-size: 0.9rem;
     }
 
-    .login-footer a {
-      color: #10b981;
-      font-weight: 600;
-      position: relative;
+    .form-message[data-tone='error'] {
+      background: #fef2f2;
+      color: #b91c1c;
     }
 
-    .login-footer a::after {
-      content: '';
-      position: absolute;
-      bottom: -2px;
-      left: 0;
-      width: 0;
-      height: 2px;
-      background: #10b981;
-      transition: width 0.3s ease;
+    .form-message[data-tone='success'] {
+      background: #ecfdf5;
+      color: #047857;
     }
 
-    .login-footer a:hover::after {
-      width: 100%;
+    .submit-button {
+      min-height: 52px;
+      border-radius: 16px;
+      border: none;
+      color: white;
+      background: linear-gradient(135deg, #10b981 0%, #0f766e 100%);
+      font-size: 1rem;
+      font-weight: 700;
+      box-shadow: 0 18px 38px -26px rgba(16, 185, 129, 0.9);
     }
 
-    @media (max-width: 480px) {
-      .login-container {
-        padding: 2rem;
+    .submit-button:disabled {
+      opacity: 0.7;
+      cursor: wait;
+    }
+
+    .card-footer {
+      margin-top: 1.25rem;
+    }
+
+    @media (max-width: 900px) {
+      .auth-shell {
+        grid-template-columns: 1fr;
       }
 
-      .login-header h1 {
-        font-size: 1.75rem;
+      .auth-aside,
+      .auth-card {
+        padding: 1.5rem;
       }
     }
   </style>
 
   <script>
-    const form = document.getElementById('registerForm') as HTMLFormElement;
-    form?.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    const form = document.getElementById('registerForm') as HTMLFormElement | null;
+    const message = document.getElementById('registerMessage') as HTMLParagraphElement | null;
+    const submitButton = form?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+    const submitLabel = submitButton?.querySelector('.submit-label') as HTMLSpanElement | null;
+    const submitLoading = submitButton?.querySelector('.submit-loading') as HTMLSpanElement | null;
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!form || !submitButton) return;
+
+      if (message) {
+        message.hidden = true;
+        message.textContent = '';
+        message.removeAttribute('data-tone');
+      }
+
+      submitButton.disabled = true;
+      if (submitLabel) submitLabel.hidden = true;
+      if (submitLoading) submitLoading.hidden = false;
+
       const formData = new FormData(form);
-      const data = {
-        name: formData.get('name'),
-        email: formData.get('email'),
-        password: formData.get('password'),
+      const payload = {
+        name: String(formData.get('name') || ''),
+        email: String(formData.get('email') || ''),
+        password: String(formData.get('password') || ''),
       };
 
       try {
-        const res = await fetch('/api/v1/auth/register', {
+        const response = await fetch('/api/v1/auth/register', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
         });
-        if (res.ok) {
-          window.location.href = '/login';
-        } else {
-          const err = await res.json();
-          alert(err.error?.message || 'Registrasi gagal');
+
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(result.error?.message || result.error || 'Registrasi gagal.');
         }
-      } catch {
-        alert('Terjadi kesalahan');
+
+        if (message) {
+          message.dataset.tone = 'success';
+          message.textContent = 'Akun berhasil dibuat. Mengarahkan ke dashboard...';
+          message.hidden = false;
+        }
+
+        window.setTimeout(() => {
+          window.location.href = form.dataset.redirect || '/dashboard';
+        }, 500);
+      } catch (error) {
+        if (message) {
+          message.dataset.tone = 'error';
+          message.textContent = error instanceof Error ? error.message : 'Terjadi kesalahan saat mendaftar.';
+          message.hidden = false;
+        }
+      } finally {
+        submitButton.disabled = false;
+        if (submitLabel) submitLabel.hidden = false;
+        if (submitLoading) submitLoading.hidden = true;
       }
     });
   </script>

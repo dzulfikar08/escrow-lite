@@ -7,11 +7,20 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    watch: null,
+  },
   test: {
     // Use happy-dom for all tests that need DOM
     environment: 'happy-dom',
+    watch: false,
+    pool: 'vmThreads',
+    include: [
+      'tests/**/*.test.ts',
+      'src/lib/**/*.test.ts',
+    ],
     poolOptions: {
-      threads: {
+      vmThreads: {
         singleThread: true,
       },
     },

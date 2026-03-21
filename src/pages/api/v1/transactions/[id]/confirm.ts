@@ -68,7 +68,7 @@ export async function GET(context: APIContext): Promise<Response> {
     }
 
     // Initialize services
-    const db = context.locals.env?.DB;
+    const db = context.locals.runtime?.env.DB;
     if (!db) {
       throw new Error('Database not available');
     }
@@ -103,7 +103,7 @@ export async function GET(context: APIContext): Promise<Response> {
     }
 
     // Redirect to success page for browser clients
-    const baseUrl = context.locals.env?.PUBLIC_URL || 'http://localhost:4321';
+    const baseUrl = context.locals.runtime?.env.PUBLIC_URL || 'http://localhost:4321';
     const successUrl = new URL('/confirm/success', baseUrl);
     successUrl.searchParams.set('transaction_id', transaction.id);
 
@@ -117,7 +117,7 @@ export async function GET(context: APIContext): Promise<Response> {
     const isApiRequest = acceptHeader?.includes('application/json');
 
     if (!isApiRequest && error instanceof Error) {
-      const baseUrl = context.locals.env?.PUBLIC_URL || 'http://localhost:4321';
+      const baseUrl = context.locals.runtime?.env.PUBLIC_URL || 'http://localhost:4321';
       const errorUrl = new URL('/confirm/error', baseUrl);
       errorUrl.searchParams.set('message', encodeURIComponent(error.message));
 

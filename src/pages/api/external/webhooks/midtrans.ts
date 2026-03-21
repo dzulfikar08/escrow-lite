@@ -43,7 +43,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     console.log(`[Midtrans Webhook] Received notification ${webhookId}`);
 
     // Parse request body
-    const payload = await request.json();
+    const payload = await request.json() as Partial<MidtransNotification>;
 
     // Validate payload structure
     if (!payload.order_id || !payload.status_code || !payload.gross_amount) {
