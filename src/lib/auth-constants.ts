@@ -17,11 +17,8 @@ export const AUTH_CONFIG = {
   /** Cookie prefix for Better Auth session cookies */
   COOKIE_PREFIX: 'escrow-lite',
 
-  /** Enable secure cookies in production */
-  USE_SECURE_COOKIES: true,
-
-  /** Base URL for the application (required for cross-subdomain cookies) */
-  BASE_URL: 'https://escrow-lite.dzulfikar-at.workers.dev',
+  /** Fallback secure-cookie default when request protocol is unavailable */
+  USE_SECURE_COOKIES: false,
 
   /** Enable cross-subdomain cookies */
   CROSS_SUBDOMAIN_COOKIES: false, // Disabled for MVP - requires baseURL configuration

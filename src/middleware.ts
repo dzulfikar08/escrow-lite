@@ -6,6 +6,16 @@ const PROTECTED_PREFIXES = ['/dashboard'];
 const ADMIN_PREFIXES = ['/admin'];
 const AUTH_API_PREFIXES = ['/api/auth'];
 
+function getAuthRuntimeOptions(context: Parameters<typeof defineMiddleware>[0] extends never ? never : any) {
+  const forwardedProto = context.request.headers.get('x-forwarded-proto');
+  const isHttps = context.url.protocol === 'https:' || forwardedProto === 'https';
+
+  return {
+    baseURL: context.url.origin,
+    useSecureCookies: isHttps,
+  };
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
   const requestId = crypto.randomUUID();
   context.locals.requestId = requestId;
@@ -20,10 +30,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (env?.DB) {
     // Make the database available through context.locals
     context.locals.db = env.DB;
-    context.locals.getAuth = () => getAuth(env.DB, env.BETTER_AUTH_SECRET as string);
+    context.locals.getAuth = () =>
+      getAuth(env.DB, env.BETTER_AUTH_SECRET as string, getAuthRuntimeOptions(context));
 
     // Initialize Better Auth and get session
-    const auth = getAuth(env.DB, env.BETTER_AUTH_SECRET as string);
+    const auth = getAuth(env.DB, env.BETTER_AUTH_SECRET as string, getAuthRuntimeOptions(context));
 
     try {
       // Get the session from the request cookies

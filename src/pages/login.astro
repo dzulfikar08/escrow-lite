@@ -225,6 +225,7 @@ const redirectTo = Astro.url.searchParams.get('redirect') || '/dashboard';
       try {
         const response = await fetch('/api/v1/auth/login', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: {
             'Content-Type': 'application/json',
           },

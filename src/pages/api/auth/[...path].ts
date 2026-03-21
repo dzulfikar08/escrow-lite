@@ -3,6 +3,16 @@ import { getAuth } from '@/lib/auth';
 
 export const prerender = false;
 
+function getAuthRuntimeOptions(context: Parameters<APIRoute>[0]) {
+  const forwardedProto = context.request.headers.get('x-forwarded-proto');
+  const isHttps = context.url.protocol === 'https:' || forwardedProto === 'https';
+
+  return {
+    baseURL: context.url.origin,
+    useSecureCookies: isHttps,
+  };
+}
+
 export const ALL: APIRoute = async (context) => {
   const env = context.locals.runtime?.env;
   const db = env?.DB;
@@ -14,7 +24,7 @@ export const ALL: APIRoute = async (context) => {
   }
 
   const secret = env?.BETTER_AUTH_SECRET as string;
-  const auth = getAuth(db, secret);
+  const auth = getAuth(db, secret, getAuthRuntimeOptions(context));
 
   const { pathname } = context.url;
   const authPath = '/api/auth';

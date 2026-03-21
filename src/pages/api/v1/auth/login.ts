@@ -7,6 +7,16 @@ import { z } from 'zod';
 
 export const prerender = false;
 
+function getAuthRuntimeOptions(context: Parameters<APIRoute>[0]) {
+  const forwardedProto = context.request.headers.get('x-forwarded-proto');
+  const isHttps = context.url.protocol === 'https:' || forwardedProto === 'https';
+
+  return {
+    baseURL: context.url.origin,
+    useSecureCookies: isHttps,
+  };
+}
+
 export const POST: APIRoute = async (context) => {
   try {
     const requestId = crypto.randomUUID();
@@ -23,8 +33,9 @@ export const POST: APIRoute = async (context) => {
     const data = loginSellerSchema.parse(body);
 
     const secret = env?.BETTER_AUTH_SECRET as string;
-    const auth = getAuth(db, secret);
+    const auth = getAuth(db, secret, getAuthRuntimeOptions(context));
     const authResponse = await auth.api.signInEmail({
+      headers: context.request.headers,
       body: {
         email: data.email,
         password: data.password,

@@ -4,12 +4,17 @@ import { Kysely } from 'kysely';
 import { D1Dialect } from 'kysely-d1';
 import { SESSION_CONFIG, AUTH_CONFIG } from './auth-constants';
 
+interface AuthRuntimeOptions {
+  baseURL?: string;
+  useSecureCookies?: boolean;
+}
+
 /**
  * Better Auth instance factory - must be called with DB from context
  * This factory pattern is required because we can't initialize at module level
  * (the D1 database is only available at runtime in the request context)
  */
-export function getAuth(db: D1Database, secret?: string) {
+export function getAuth(db: D1Database, secret?: string, options: AuthRuntimeOptions = {}) {
   // Create Kysely instance with D1 dialect
   const kysely = new Kysely({
     dialect: new D1Dialect({ database: db }),
@@ -18,7 +23,8 @@ export function getAuth(db: D1Database, secret?: string) {
   return betterAuth({
     database: kyselyAdapter(kysely),
     secret: secret || 'escrow-lite-production-secret-change-me',
-    baseURL: AUTH_CONFIG.BASE_URL,
+    baseURL: options.baseURL || undefined,
+    trustedProxyHeaders: true,
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false, // For MVP
@@ -39,7 +45,7 @@ export function getAuth(db: D1Database, secret?: string) {
       crossSubDomainCookies: {
         enabled: AUTH_CONFIG.CROSS_SUBDOMAIN_COOKIES,
       },
-      useSecureCookies: AUTH_CONFIG.USE_SECURE_COOKIES,
+      useSecureCookies: options.useSecureCookies ?? AUTH_CONFIG.USE_SECURE_COOKIES,
     },
     account: {
       accountLinking: {
